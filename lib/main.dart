@@ -897,7 +897,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                               child: IconButton.filledTonal(
                                 iconSize: 42,
                                 autofocus: true,
-                                onPressed: _togglePlayPause,
+                                onPressed: _remoteController.togglePlayPause,
                                 icon: Icon(
                                   controller.value.isPlaying
                                       ? Icons.pause

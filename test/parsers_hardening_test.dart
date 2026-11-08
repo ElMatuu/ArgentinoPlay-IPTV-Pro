@@ -108,6 +108,7 @@ void main() {
       expect(normalizeEpgName('Café'), 'cafe');
       expect(normalizeEpgName('Hôtel'), 'hotel');
       expect(normalizeEpgName('Ça va'), 'ca va');
+      expect(normalizeEpgName('Noël'), 'noel');
     });
 
     test('handles German umlauts', () {
