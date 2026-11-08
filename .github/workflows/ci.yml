@@ -50,7 +50,7 @@ jobs:
           fi
 
           echo "Aceptando licencias del SDK Android (la salida queda visible)."
-          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" --licenses < <(yes)
 
           echo "Instalando Android SDK Platform 36."
           "$SDKMANAGER" --install "platforms;android-36"
