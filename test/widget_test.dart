@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:argentino_play/main.dart';
 
 void main() {
@@ -19,6 +20,7 @@ void main() {
   });
 
   testWidgets('home screen shows playlist import empty state', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const ArgentinoPlayApp());
     await tester.pumpAndSettle();
     expect(find.text('Tu catálogo empieza acá'), findsOneWidget);
