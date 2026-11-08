@@ -801,9 +801,14 @@ class _PlayerScreenState extends State<PlayerScreen>
         controller.pause();
         return KeyEventResult.handled;
       case PlayerRemoteAction.seekBackward:
+        // Only seek while the player surface itself owns focus. If a child
+        // control is focused, let the directional event bubble to Flutter's
+        // focus traversal system instead of trapping the D-pad on the player.
+        if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
         _seekBy(controller, const Duration(seconds: -10));
         return KeyEventResult.handled;
       case PlayerRemoteAction.seekForward:
+        if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
         _seekBy(controller, const Duration(seconds: 10));
         return KeyEventResult.handled;
       case null:
