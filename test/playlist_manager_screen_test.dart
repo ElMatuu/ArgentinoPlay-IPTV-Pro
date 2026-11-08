@@ -54,12 +54,17 @@ void main() {
       ),
     );
     await tester.tap(find.text('Abrir listas'));
-    // The screen loads its manifest from disk. Let real file I/O complete
-    // outside the widget test's fake-async clock before settling animations.
     await tester.pump();
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
-    );
+
+    // PlaylistManagerScreen starts real dart:io work in initState. Waiting on
+    // a real repository read inside runAsync lets that I/O finish outside the
+    // widget test's fake-async clock; a fixed delay is timing-dependent and
+    // can leave the loading indicator animating forever.
+    await tester.runAsync(() => repository.listPlaylists());
+
+    // Process the FutureBuilder completion and finish the route transition
+    // before asking the test binding to settle remaining animations.
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
   }
 
@@ -96,12 +101,19 @@ void main() {
     await tester.tap(find.text('Eliminar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('¿Querés eliminar "Noticias"? Esta acción no se puede deshacer.'),
-        findsOneWidget);
+    expect(
+      find.text('¿Querés eliminar "Noticias"? Esta acción no se puede deshacer.'),
+      findsOneWidget,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Todavía no guardaste listas.'), findsOneWidget);
+    expect(
+      find.text(
+        'Todavía no guardaste listas. Importá un archivo M3U o M3U8 para agregar la primera.',
+      ),
+      findsOneWidget,
+    );
     expect(await repository.listPlaylists(), isEmpty);
   });
 
