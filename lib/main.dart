@@ -12,6 +12,7 @@ import 'services/epg_matcher.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
+import 'services/player_seek.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -803,14 +804,13 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _seekBy(VideoPlayerController controller, Duration offset) {
-    final value = controller.value;
-    final duration = value.duration;
-    if (duration <= Duration.zero) return;
-
-    final target = value.position + offset;
-    final clampedMilliseconds =
-        target.inMilliseconds.clamp(0, duration.inMilliseconds);
-    controller.seekTo(Duration(milliseconds: clampedMilliseconds));
+    final target = calculateSeekTarget(
+      position: controller.value.position,
+      duration: controller.value.duration,
+      offset: offset,
+    );
+    if (target == null) return;
+    controller.seekTo(target);
   }
 
   void _togglePlayback(VideoPlayerController controller) {
