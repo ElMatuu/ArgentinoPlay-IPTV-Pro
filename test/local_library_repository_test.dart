@@ -40,7 +40,7 @@ void main() {
     await repository.savePlaylist(original);
 
     final oversized = 'x' * (LocalLibraryRepository.maxPlaylistBytes + 1);
-    await expectLater(repository.savePlaylist(oversized), throwsFileSystemException);
+    await expectLater(repository.savePlaylist(oversized), throwsA(isA<FileSystemException>()));
     expect(await repository.loadPlaylist(), original);
   });
 
