@@ -4,7 +4,7 @@ import 'package:argentino_play/domain/tv_channel.dart';
 import 'package:argentino_play/services/epg_matcher.dart';
 
 void main() {
-  const guide = XmltvGuide(
+  final guide = XmltvGuide(
     channels: {
       'news.ar': EpgChannel(id: 'news.ar', displayName: 'Noticias Árgentina'),
       'sports.ar': EpgChannel(id: 'sports.ar', displayName: 'Deportes'),
@@ -45,7 +45,7 @@ void main() {
     });
 
     test('normalizes accents and punctuation for unique name matches', () {
-      const uniqueGuide = XmltvGuide(
+      final uniqueGuide = XmltvGuide(
         channels: {
           'news.ar': EpgChannel(
             id: 'news.ar',
@@ -82,7 +82,7 @@ void main() {
   });
 
   test('currentProgrammeForChannel returns the programme at the instant', () {
-    const uniqueGuide = XmltvGuide(
+    final uniqueGuide = XmltvGuide(
       channels: {
         'news.ar': EpgChannel(id: 'news.ar', displayName: 'Noticias'),
       },
