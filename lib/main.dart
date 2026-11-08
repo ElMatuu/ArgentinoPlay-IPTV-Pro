@@ -715,26 +715,38 @@ class _PlayerScreenState extends State<PlayerScreen>
     _start();
   }
 
+  @override
+  void didUpdateWidget(covariant PlayerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.channel.url != widget.channel.url) {
+      _start();
+    }
+  }
+
   Future<void> _start() async {
     final generation = ++_startGeneration;
     final previous = _controller;
     _controller = null;
     previous?.removeListener(_onPlayerChanged);
-    await previous?.dispose();
 
-    if (!mounted || generation != _startGeneration) {
-      return;
+    if (mounted) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
     }
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
 
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.channel.url),
-    );
-    _controller = controller;
+    VideoPlayerController? controller;
     try {
+      await previous?.dispose();
+      if (!mounted || generation != _startGeneration) {
+        return;
+      }
+
+      controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.channel.url),
+      );
+      _controller = controller;
       controller.addListener(_onPlayerChanged);
       await controller.initialize();
       if (!mounted ||
@@ -750,9 +762,19 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
       setState(() => _busy = false);
     } catch (_) {
-      if (!mounted ||
-          generation != _startGeneration ||
-          !identical(_controller, controller)) {
+      if (!mounted || generation != _startGeneration) {
+        return;
+      }
+      if (identical(_controller, controller)) {
+        controller?.removeListener(_onPlayerChanged);
+        _controller = null;
+        try {
+          await controller?.dispose();
+        } catch (_) {
+          // Preserve the original startup failure for the user-facing state.
+        }
+      }
+      if (!mounted || generation != _startGeneration) {
         return;
       }
       setState(() {
