@@ -9,6 +9,7 @@ import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
+import 'services/channel_logo.dart';
 import 'services/epg_matcher.dart';
 import 'services/epg_schedule_index.dart';
 import 'services/local_library_repository.dart';
