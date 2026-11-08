@@ -58,6 +58,7 @@ create table if not exists public.favorite_channels (
   unique (user_id, channel_key)
 );
 create index if not exists favorite_channels_user_created_idx on public.favorite_channels(user_id, created_at desc);
+create index if not exists favorite_channels_playlist_id_idx on public.favorite_channels(playlist_id) where playlist_id is not null;
 
 create table if not exists public.user_preferences (
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -84,6 +85,7 @@ create table if not exists public.sync_receipts (
   foreign key (user_id, device_id) references public.devices(user_id, id) on delete cascade
 );
 create index if not exists sync_receipts_user_created_idx on public.sync_receipts(user_id, created_at desc);
+create index if not exists sync_receipts_user_device_idx on public.sync_receipts(user_id, device_id);
 
 create table if not exists public.sync_cursors (
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -104,7 +106,8 @@ begin
   on conflict (id) do nothing;
   return new;
 end;
-$$;
+$;
+revoke execute on function public.handle_new_auth_user() from public, anon, authenticated;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute procedure public.handle_new_auth_user();
