@@ -74,6 +74,14 @@ void main() {
     WidgetTester tester, {
     required void Function(PlaylistRecord record, String source) onSelected,
   }) async {
+    // The playlist row's trailing actions control is laid out beyond the
+    // default 800px test surface. Use an explicit wide test surface so the
+    // widget remains inside the hit-testable viewport (Android TV layout).
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
