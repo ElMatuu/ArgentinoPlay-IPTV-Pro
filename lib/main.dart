@@ -9,6 +9,7 @@ import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
+import 'services/channel_logo.dart';
 import 'services/epg_matcher.dart';
 import 'services/epg_schedule_index.dart';
 import 'services/local_library_repository.dart';
@@ -461,9 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             final programme = _currentProgramme(channel);
                             final isFavorite = _favorites.contains(channel.url);
                             return ListTile(
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.live_tv),
-                              ),
+                              leading: ChannelLogo(url: channel.logo),
                               title: Text(
                                 channel.name,
                                 maxLines: 1,
