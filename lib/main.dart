@@ -193,25 +193,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _importPlaylist() async {
     if (_importing) return;
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['m3u', 'm3u8'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-
-    final bytes = result.files.single.bytes;
-    if (bytes == null) {
-      _showMessage('No se pudo acceder al contenido del archivo.');
-      return;
-    }
-    if (bytes.lengthInBytes > 5 * 1024 * 1024) {
-      _showMessage('La lista supera el límite de importación de 5 MB.');
-      return;
-    }
-
     setState(() => _importing = true);
     try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['m3u', 'm3u8'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final bytes = result.files.single.bytes;
+      if (bytes == null) {
+        _showMessage('No se pudo acceder al contenido del archivo.');
+        return;
+      }
+      if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+        _showMessage('La lista supera el límite de importación de 5 MB.');
+        return;
+      }
+
       final source = utf8.decode(bytes);
       final parsed = parseM3u(source);
       if (parsed.isEmpty) {
@@ -282,30 +282,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _importEpg() async {
-    if (_importing) {
-      return;
-    }
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xml', 'xmltv'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) {
-      return;
-    }
-
-    final bytes = result.files.single.bytes;
-    if (bytes == null) {
-      _showMessage('No se pudo acceder al contenido del archivo EPG.');
-      return;
-    }
-    if (bytes.lengthInBytes > 10 * 1024 * 1024) {
-      _showMessage('La guía supera el límite de importación de 10 MB.');
-      return;
-    }
-
+    if (_importing) return;
     setState(() => _importing = true);
     try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xml', 'xmltv'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final bytes = result.files.single.bytes;
+      if (bytes == null) {
+        _showMessage('No se pudo acceder al contenido del archivo EPG.');
+        return;
+      }
+      if (bytes.lengthInBytes > 10 * 1024 * 1024) {
+        _showMessage('La guía supera el límite de importación de 10 MB.');
+        return;
+      }
+
       final source = utf8.decode(bytes);
       final guide = parseXmltv(source);
       if (guide.channels.isEmpty || guide.programmes.isEmpty) {
@@ -314,9 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
       await widget.libraryRepository.saveGuide(source);
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() => _guide = guide);
       _showMessage(
         'Guía importada: ${guide.channels.length} canales y '
@@ -327,9 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       _showMessage('No se pudo procesar el archivo XMLTV.');
     } finally {
-      if (mounted) {
-        setState(() => _importing = false);
-      }
+      if (mounted) setState(() => _importing = false);
     }
   }
 
