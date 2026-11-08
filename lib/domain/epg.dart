@@ -84,6 +84,9 @@ class XmltvGuide {
 
 /// Normalizes a channel name for guide fallback matching: case, accents,
 /// punctuation and repeated spacing are folded away.
+///
+/// Handles common Latin-1 Supplement and Latin Extended-A characters used in
+/// Spanish, Portuguese, French, German, and other European languages.
 String normalizeEpgName(String value) {
   return value
       .toLowerCase()
@@ -94,6 +97,39 @@ String normalizeEpgName(String value) {
       .replaceAll('ú', 'u')
       .replaceAll('ü', 'u')
       .replaceAll('ñ', 'n')
+      .replaceAll('à', 'a')
+      .replaceAll('â', 'a')
+      .replaceAll('ä', 'a')
+      .replaceAll('è', 'e')
+      .replaceAll('ê', 'e')
+      .replaceAll('î', 'i')
+      .replaceAll('ï', 'i')
+      .replaceAll('ò', 'o')
+      .replaceAll('ô', 'o')
+      .replaceAll('ö', 'o')
+      .replaceAll('ù', 'u')
+      .replaceAll('û', 'u')
+      .replaceAll('ç', 'c')
+      .replaceAll('À', 'a')
+      .replaceAll('Á', 'a')
+      .replaceAll('Â', 'a')
+      .replaceAll('Ä', 'a')
+      .replaceAll('È', 'e')
+      .replaceAll('É', 'e')
+      .replaceAll('Ê', 'e')
+      .replaceAll('Ì', 'i')
+      .replaceAll('Í', 'i')
+      .replaceAll('Î', 'i')
+      .replaceAll('Ï', 'i')
+      .replaceAll('Ò', 'o')
+      .replaceAll('Ó', 'o')
+      .replaceAll('Ô', 'o')
+      .replaceAll('Ö', 'o')
+      .replaceAll('Ù', 'u')
+      .replaceAll('Ú', 'u')
+      .replaceAll('Ü', 'u')
+      .replaceAll('Ñ', 'n')
+      .replaceAll('Ç', 'c')
       .replaceAll(RegExp(r'[^a-z0-9 ]'), '')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
