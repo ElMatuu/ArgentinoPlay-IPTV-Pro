@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 /// Minimal playback contract used by remote-control actions.
 abstract interface class RemotePlaybackController {
