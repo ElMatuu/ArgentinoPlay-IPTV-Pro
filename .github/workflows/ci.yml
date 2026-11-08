@@ -129,6 +129,14 @@ jobs:
           echo "Valor compileSdk configurado:"
           grep -nE 'compileSdk(Version)?[[:space:]]*(=|)[[:space:]]*36' android/app/build.gradle*
 
+      - name: Block privileged Supabase credentials in client source
+        shell: bash
+        run: |
+          if grep -RIlE 'sb_secret_|service_role|SUPABASE_SECRET_KEY|SUPABASE_ACCESS_TOKEN|SUPABASE_DB_PASSWORD' lib android; then
+            echo "::error::Privileged Supabase credentials or identifiers must not be present in client source."
+            exit 1
+          fi
+
       - name: Install dependencies
         run: flutter pub get
 
