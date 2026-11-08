@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
 import 'services/epg_matcher.dart';
+import 'services/channel_search.dart';
 import 'services/epg_schedule_index.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
@@ -356,9 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = _channels.where((channel) {
-      final matches =
-          channel.name.toLowerCase().contains(_query.toLowerCase()) ||
-              channel.group.toLowerCase().contains(_query.toLowerCase());
+      final matches = channelMatchesQuery(channel, _query);
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
       final inGuide = _tab != 2 ||
           (_guide != null && matchEpgChannel(channel, _guide!) != null);
@@ -410,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: TextField(
                     decoration: const InputDecoration(
                       prefixIcon: Icon(Icons.search),
-                      hintText: 'Buscar canales...',
+                      hintText: 'Buscar por canal, país, idioma o categoría...',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (value) => setState(() => _query = value),
