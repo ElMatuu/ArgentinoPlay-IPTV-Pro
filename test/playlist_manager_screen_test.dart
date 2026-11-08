@@ -57,12 +57,13 @@ void main() {
     // The screen loads its manifest from disk. Let real file I/O complete
     // outside the widget test's fake-async clock before settling animations.
     await tester.pump();
-    await tester.runAsync(() async {
-      // Wait for real filesystem I/O rather than advancing fake-async time.
-      await repository.listPlaylists();
-    });
-    // The indeterminate loading indicator never settles by design. Advance
-    // the route transition explicitly, then let the FutureBuilder rebuild.
+    // Filesystem futures use real asynchronous I/O. Give the FutureBuilder's
+    // own listPlaylists() operation time to complete outside fake async.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    // Do not use pumpAndSettle while the indeterminate loading indicator is
+    // visible; advance the route transition and rebuild explicitly.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pump();
