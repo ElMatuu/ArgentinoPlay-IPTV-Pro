@@ -70,5 +70,5 @@ String _normalizeChannelName(String value) {
   return normalized
       .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
       .trim()
-      .replaceAll(RegExp(r'\\s+'), ' ');
+      .replaceAll(RegExp(r'\s+'), ' ');
 }
