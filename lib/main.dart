@@ -785,12 +785,20 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
     }
+    final action = playerRemoteActionForKey(event.logicalKey);
+    // Back navigation must remain available while the player is loading or
+    // showing an error, even when no initialized video controller exists.
+    if (action == PlayerRemoteAction.back) {
+      Navigator.of(context).maybePop();
+      return KeyEventResult.handled;
+    }
+
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
       return KeyEventResult.ignored;
     }
 
-    switch (playerRemoteActionForKey(event.logicalKey)) {
+    switch (action) {
       case PlayerRemoteAction.toggle:
         _togglePlayback(controller);
         return KeyEventResult.handled;
