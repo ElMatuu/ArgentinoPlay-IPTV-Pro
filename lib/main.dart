@@ -726,17 +726,13 @@ class _EpgScreenState extends State<EpgScreen> {
                         )
                       : ListView.separated(
                           itemCount: programmes.length,
-                          separatorBuilder: (_, __) =>
-                              const Divider(height: 1),
+                          separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final programme = programmes[index];
-                            final now =
-                                programme.isOnAirAt(DateTime.now());
+                            final now = programme.isOnAirAt(DateTime.now());
                             return ListTile(
                               leading: Icon(
-                                now
-                                    ? Icons.play_circle_fill
-                                    : Icons.schedule,
+                                now ? Icons.play_circle_fill : Icons.schedule,
                                 color: now
                                     ? Theme.of(context).colorScheme.primary
                                     : null,
@@ -747,8 +743,7 @@ class _EpgScreenState extends State<EpgScreen> {
                                 '${_formatTime(programme.end)}'
                                 '${programme.description.isEmpty ? '' : '\\n${programme.description}'}',
                               ),
-                              isThreeLine:
-                                  programme.description.isNotEmpty,
+                              isThreeLine: programme.description.isNotEmpty,
                             );
                           },
                         ),
