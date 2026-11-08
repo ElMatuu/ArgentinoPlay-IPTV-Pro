@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:io';
+
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:argentino_play/services/local_library_repository.dart';
 import 'package:argentino_play/main.dart';
 
 void main() {
@@ -21,9 +24,12 @@ void main() {
 
   testWidgets('home screen shows playlist import empty state', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const ArgentinoPlayApp());
+    final directory = await Directory.systemTemp.createTemp('argentino-play-test-');
+    final repository = LocalLibraryRepository(directoryProvider: () async => directory);
+    await tester.pumpWidget(ArgentinoPlayApp(libraryRepository: repository));
     await tester.pumpAndSettle();
     expect(find.text('Tu catálogo empieza acá'), findsOneWidget);
     expect(find.text('Importar lista'), findsOneWidget);
+    await directory.delete(recursive: true);
   });
 }
