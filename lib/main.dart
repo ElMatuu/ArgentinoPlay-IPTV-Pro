@@ -366,11 +366,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = _channels.where((channel) {
-      final matches = channel.name.toLowerCase().contains(_query.toLowerCase()) ||
+      final matches =
+          channel.name.toLowerCase().contains(_query.toLowerCase()) ||
           channel.group.toLowerCase().contains(_query.toLowerCase());
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
-      final inGuide = _tab != 2 ||
-          (_guide?.channels.containsKey(channel.tvgId) ?? false);
+      final inGuide =
+          _tab != 2 || (_guide?.channels.containsKey(channel.tvgId) ?? false);
       return matches && inFavorites && inGuide;
     }).toList();
 
@@ -468,8 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemBuilder: (context, index) {
                             final channel = visible[index];
                             final programme = _currentProgramme(channel);
-                            final isFavorite =
-                                _favorites.contains(channel.url);
+                            final isFavorite = _favorites.contains(channel.url);
                             return ListTile(
                               leading: const CircleAvatar(
                                 child: Icon(Icons.live_tv),
@@ -676,9 +676,7 @@ class EpgScreen extends StatelessWidget {
                 return ListTile(
                   leading: Icon(
                     now ? Icons.play_circle_fill : Icons.schedule,
-                    color: now
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
+                    color: now ? Theme.of(context).colorScheme.primary : null,
                   ),
                   title: Text(programme.title),
                   subtitle: Text(
@@ -788,8 +786,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         state == AppLifecycleState.paused) {
       _wasPlayingBeforePause = controller.value.isPlaying;
       controller.pause();
-    } else if (state == AppLifecycleState.resumed &&
-        _wasPlayingBeforePause) {
+    } else if (state == AppLifecycleState.resumed && _wasPlayingBeforePause) {
       controller.play();
       _wasPlayingBeforePause = false;
     }

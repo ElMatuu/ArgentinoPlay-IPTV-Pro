@@ -97,7 +97,8 @@ void main() {
       id: 'news',
       name: 'Noticias',
       channelCount: 1,
-      source: '#EXTM3U\n#EXTINF:-1,Canal Noticias\nhttps://example.org/news.m3u8\n',
+      source:
+          '#EXTM3U\n#EXTINF:-1,Canal Noticias\nhttps://example.org/news.m3u8\n',
     );
   });
 

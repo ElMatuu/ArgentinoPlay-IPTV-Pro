@@ -19,7 +19,8 @@ void main() {
     }
   });
 
-  test('creates, lists, loads and restores selection after reopening', () async {
+  test('creates, lists, loads and restores selection after reopening',
+      () async {
     final first = await repository.createPlaylist(
       name: 'Noticias',
       source: '#EXTM3U\n#EXTINF:-1,Canal A\nhttps://example.org/a.m3u8\n',

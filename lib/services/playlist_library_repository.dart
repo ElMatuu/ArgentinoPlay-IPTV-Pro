@@ -87,14 +87,12 @@ class PlaylistLibraryRepository {
     if (decoded is! List) {
       throw const FormatException('Playlist index is not a list.');
     }
-    final records = decoded
-        .map((item) {
-          if (item is! Map<String, dynamic>) {
-            throw const FormatException('Invalid playlist index entry.');
-          }
-          return PlaylistRecord.fromJson(item);
-        })
-        .toList()
+    final records = decoded.map((item) {
+      if (item is! Map<String, dynamic>) {
+        throw const FormatException('Invalid playlist index entry.');
+      }
+      return PlaylistRecord.fromJson(item);
+    }).toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return records;
   }
@@ -105,7 +103,8 @@ class PlaylistLibraryRepository {
     final file = await _sourceFile(id);
     if (!await file.exists()) return null;
     if (await file.length() > maxPlaylistBytes) {
-      throw const FileSystemException('Stored playlist exceeds its size limit.');
+      throw const FileSystemException(
+        'Stored playlist exceeds its size limit.');
     }
     return file.readAsString(encoding: utf8);
   }
@@ -119,10 +118,12 @@ class PlaylistLibraryRepository {
     final cleanName = name.trim();
     final bytes = utf8.encode(source);
     if (cleanName.isEmpty || cleanName.length > 80) {
-      throw const FormatException('Playlist name must contain 1–80 characters.');
+      throw const FormatException(
+        'Playlist name must contain 1–80 characters.');
     }
     if (channelCount < 1) {
-      throw const FormatException('Playlist must contain at least one channel.');
+      throw const FormatException(
+        'Playlist must contain at least one channel.');
     }
     if (bytes.length > maxPlaylistBytes) {
       throw const FileSystemException('Playlist exceeds the 5 MB limit.');
@@ -158,13 +159,15 @@ class PlaylistLibraryRepository {
   Future<PlaylistRecord> renamePlaylist(String id, String name) async {
     final cleanName = name.trim();
     if (cleanName.isEmpty || cleanName.length > 80) {
-      throw const FormatException('Playlist name must contain 1–80 characters.');
+      throw const FormatException(
+        'Playlist name must contain 1–80 characters.');
     }
     final records = await listPlaylists();
     final index = records.indexWhere((record) => record.id == id);
     if (index < 0) throw const FormatException('Playlist not found.');
     if (records.any((record) =>
-        record.id != id && record.name.toLowerCase() == cleanName.toLowerCase())) {
+        record.id != id &&
+        record.name.toLowerCase() == cleanName.toLowerCase())) {
       throw const FormatException('A playlist with that name already exists.');
     }
     final old = records[index];
