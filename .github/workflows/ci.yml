@@ -30,6 +30,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.9'
           cache: true
 
       - name: Generate Android platform scaffolding
@@ -123,6 +124,14 @@ jobs:
           properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
           print(f"Configuración aplicada: {properties} -> {warning_setting}")
           PY
+
+      - name: Upload generated Android platform scaffold
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-platform-scaffold
+          path: android/
+          if-no-files-found: error
+          retention-days: 7
 
           echo "Plataformas Android instaladas:"
           "$SDKMANAGER" --list_installed
