@@ -152,7 +152,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: 24),
             if (_auth == null)
-              Card(
+              const Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
