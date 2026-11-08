@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/supabase_bootstrap.dart';
 import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
@@ -18,7 +19,17 @@ export 'domain/tv_channel.dart';
 export 'services/m3u_parser.dart';
 export 'services/xmltv_parser.dart';
 
-void main() => runApp(ArgentinoPlayApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await SupabaseBootstrap.initializeFromEnvironment();
+  } catch (error, stackTrace) {
+    // Cloud is optional; a config issue must not block local playback.
+    debugPrint('Supabase initialization skipped: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+  runApp(ArgentinoPlayApp());
+}
 
 class ArgentinoPlayApp extends StatelessWidget {
   ArgentinoPlayApp({
