@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
@@ -338,23 +339,40 @@ class _HomeScreenState extends State<HomeScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  EpgProgramme? _currentProgramme(TvChannel channel) {
+  String? _guideIdFor(TvChannel channel) {
     final guide = _guide;
-    if (guide == null || channel.tvgId.isEmpty) {
+    if (guide == null) {
       return null;
     }
-    return guide.programmeAt(channel.tvgId, DateTime.now());
+    return guide.resolveChannelId(
+      tvgId: channel.tvgId,
+      channelName: channel.name,
+    );
+  }
+
+  EpgProgramme? _programmeForId(String guideId) {
+    return _guide?.programmeAt(guideId, DateTime.now());
+  }
+
+  EpgProgramme? _currentProgramme(TvChannel channel) {
+    final guideId = _guideIdFor(channel);
+    if (guideId == null) {
+      return null;
+    }
+    return _programmeForId(guideId);
   }
 
   @override
   Widget build(BuildContext context) {
+    final query = _query.toLowerCase();
     final visible = _channels.where((channel) {
-      final matches =
-          channel.name.toLowerCase().contains(_query.toLowerCase()) ||
-              channel.group.toLowerCase().contains(_query.toLowerCase());
+      final guideId = _guideIdFor(channel);
+      final programme = guideId == null ? null : _programmeForId(guideId);
+      final matches = channel.name.toLowerCase().contains(query) ||
+          channel.group.toLowerCase().contains(query) ||
+          (programme?.title.toLowerCase().contains(query) ?? false);
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
-      final inGuide =
-          _tab != 2 || (_guide?.channels.containsKey(channel.tvgId) ?? false);
+      final inGuide = _tab != 2 || guideId != null;
       return matches && inFavorites && inGuide;
     }).toList();
 
@@ -643,7 +661,13 @@ class EpgScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final programmes = guide.programmesFor(channel.tvgId);
+    final guideId = guide.resolveChannelId(
+      tvgId: channel.tvgId,
+      channelName: channel.name,
+    );
+    final programmes = guideId == null
+        ? const <EpgProgramme>[]
+        : guide.programmesFor(guideId);
     return Scaffold(
       appBar: AppBar(title: Text('Programación · ${channel.name}')),
       body: programmes.isEmpty
@@ -759,6 +783,29 @@ class _PlayerScreenState extends State<PlayerScreen>
     setState(() {});
   }
 
+  void _togglePlayPause() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    if (controller.value.isPlaying) {
+      controller.pause();
+    } else {
+      controller.play();
+    }
+  }
+
+  Map<ShortcutActivator, VoidCallback> _remoteShortcuts() {
+    return {
+      for (final key in [
+        LogicalKeyboardKey.mediaPlayPause,
+        LogicalKeyboardKey.mediaPlay,
+        LogicalKeyboardKey.mediaPause,
+      ])
+        SingleActivator(key): _togglePlayPause,
+    };
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final controller = _controller;
@@ -785,6 +832,13 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   Widget build(BuildContext context) {
+    return CallbackShortcuts(
+      bindings: _remoteShortcuts(),
+      child: _buildPlayer(context),
+    );
+  }
+
+  Widget _buildPlayer(BuildContext context) {
     final controller = _controller;
     final initialized = controller?.value.isInitialized ?? false;
     final aspectRatio = initialized && controller!.value.aspectRatio > 0
@@ -830,13 +884,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                               alignment: Alignment.center,
                               child: IconButton.filledTonal(
                                 iconSize: 42,
-                                onPressed: () {
-                                  if (controller.value.isPlaying) {
-                                    controller.pause();
-                                  } else {
-                                    controller.play();
-                                  }
-                                },
+                                autofocus: true,
+                                onPressed: _togglePlayPause,
                                 icon: Icon(
                                   controller.value.isPlaying
                                       ? Icons.pause

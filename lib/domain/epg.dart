@@ -56,4 +56,45 @@ class XmltvGuide {
     }
     return null;
   }
+
+  /// Resolves the XMLTV channel id for a TV channel.
+  ///
+  /// Uses [tvgId] when the guide has that exact id. Otherwise falls back to
+  /// comparing [channelName] with the normalized display-name of each guide
+  /// channel, so playlists without tvg-id can still show programming.
+  String? resolveChannelId({
+    required String tvgId,
+    required String channelName,
+  }) {
+    if (tvgId.isNotEmpty && channels.containsKey(tvgId)) {
+      return tvgId;
+    }
+    final normalized = normalizeEpgName(channelName);
+    if (normalized.isEmpty) {
+      return null;
+    }
+    for (final channel in channels.values) {
+      if (normalizeEpgName(channel.displayName) == normalized) {
+        return channel.id;
+      }
+    }
+    return null;
+  }
+}
+
+/// Normalizes a channel name for guide fallback matching: case, accents,
+/// punctuation and repeated spacing are folded away.
+String normalizeEpgName(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll('á', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ó', 'o')
+      .replaceAll('ú', 'u')
+      .replaceAll('ü', 'u')
+      .replaceAll('ñ', 'n')
+      .replaceAll(RegExp(r'[^a-z0-9 ]'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
 }

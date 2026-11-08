@@ -103,25 +103,36 @@ bool _isAllowedStreamUri(Uri? uri) {
 }
 
 int _findTitleSeparator(String line) {
-  var insideQuotes = false;
+  String? openQuote;
   for (var index = 0; index < line.length; index++) {
     final character = line[index];
-    if (character == '"') {
-      insideQuotes = !insideQuotes;
-    } else if (character == ',' && !insideQuotes) {
+    if (openQuote == character) {
+      openQuote = null;
+    } else if (_isQuote(character) && openQuote == null) {
+      openQuote = character;
+    } else if (character == ',' && openQuote == null) {
       return index;
     }
   }
   return -1;
 }
 
+bool _isQuote(String character) {
+  return character == '"' || character == '\'';
+}
+
 Map<String, String> _readAttributes(String line) {
   final attributes = <String, String>{};
-  final pattern = RegExp(r'([\w-]+)\s*=\s*"([^"]*)"');
+  final pattern = RegExp(
+    r'([\w-]+)\s*=\s*(?:"([^"]*)"'
+    r"|'([^']*)'"
+    r'|([^,\s]+))',
+  );
   for (final match in pattern.allMatches(line)) {
     final key = match.group(1);
-    final value = match.group(2);
-    if (key != null && value != null) {
+    final value =
+        match.group(2) ?? match.group(3) ?? match.group(4)?.trim() ?? '';
+    if (key != null) {
       attributes[key.toLowerCase()] = value;
     }
   }
