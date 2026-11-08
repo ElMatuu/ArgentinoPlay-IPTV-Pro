@@ -57,9 +57,8 @@ void main() {
     // The screen loads its manifest from disk. Let real file I/O complete
     // outside the widget test's fake-async clock before settling animations.
     await tester.pump();
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 250)),
-    );
+    final persisted = await tester.runAsync(repository.listPlaylists);
+    expect(persisted, hasLength(1));
     // The screen displays an indeterminate CircularProgressIndicator while
     // the manifest is loading. pumpAndSettle can never settle that animation,
     // even after the file Future completes, so advance a bounded number of
