@@ -56,9 +56,8 @@ void main() {
       );
     });
 
-    test(
-      'returns the most recently started programme when intervals overlap',
-      () {
+    test('returns the most recently started programme when intervals overlap',
+        () {
       final earlier = EpgProgramme(
         channelId: 'news',
         title: 'Long bulletin',
