@@ -65,7 +65,6 @@ class FakeVideoPlayerController implements VideoPlayerController {
           duration: const Duration(seconds: 10),
           size: const Size(1920, 1080),
           rotationCorrection: 0,
-          isLooping: false,
         ),
       );
 
