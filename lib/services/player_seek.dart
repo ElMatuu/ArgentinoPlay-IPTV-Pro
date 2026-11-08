@@ -6,7 +6,6 @@ Duration? calculateSeekTarget({
 }) {
   if (duration <= Duration.zero) return null;
   final target = position + offset;
-  final milliseconds =
-      target.inMilliseconds.clamp(0, duration.inMilliseconds);
+  final milliseconds = target.inMilliseconds.clamp(0, duration.inMilliseconds);
   return Duration(milliseconds: milliseconds);
 }
