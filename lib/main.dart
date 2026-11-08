@@ -2,14 +2,18 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
+import 'services/epg_matcher.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
+import 'services/player_seek.dart';
+import 'services/player_remote_action.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -340,10 +344,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   EpgProgramme? _currentProgramme(TvChannel channel) {
     final guide = _guide;
-    if (guide == null || channel.tvgId.isEmpty) {
+    if (guide == null) {
       return null;
     }
-    return guide.programmeAt(channel.tvgId, DateTime.now());
+    return currentProgrammeForChannel(
+      channel,
+      guide,
+      at: DateTime.now(),
+    );
   }
 
   @override
@@ -353,8 +361,8 @@ class _HomeScreenState extends State<HomeScreen> {
           channel.name.toLowerCase().contains(_query.toLowerCase()) ||
               channel.group.toLowerCase().contains(_query.toLowerCase());
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
-      final inGuide =
-          _tab != 2 || (_guide?.channels.containsKey(channel.tvgId) ?? false);
+      final inGuide = _tab != 2 ||
+          (_guide != null && matchEpgChannel(channel, _guide!) != null);
       return matches && inFavorites && inGuide;
     }).toList();
 
@@ -589,7 +597,7 @@ class _EmptyState extends StatelessWidget {
     final description = favoritesOnly
         ? 'Marcá canales con el corazón para encontrarlos acá.'
         : guideOnly
-            ? 'Importá una guía XMLTV y vinculala mediante el identificador tvg-id de cada canal.'
+            ? 'Importá una guía XMLTV. Los canales se vinculan por tvg-id o, si falta, por un nombre único.'
             : 'Importá una lista M3U/M3U8 de fuentes propias, públicas autorizadas o licenciadas.';
     final icon = favoritesOnly
         ? Icons.favorite_border
@@ -643,7 +651,10 @@ class EpgScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final programmes = guide.programmesFor(channel.tvgId);
+    final matchedChannel = matchEpgChannel(channel, guide);
+    final programmes = matchedChannel == null
+        ? const <EpgProgramme>[]
+        : guide.programmesFor(matchedChannel.id);
     return Scaffold(
       appBar: AppBar(title: Text('Programación · ${channel.name}')),
       body: programmes.isEmpty
@@ -697,6 +708,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   String? _error;
   bool _busy = true;
   bool _wasPlayingBeforePause = false;
+  int _startGeneration = 0;
 
   @override
   void initState() {
@@ -706,11 +718,13 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Future<void> _start() async {
+    final generation = ++_startGeneration;
     final previous = _controller;
+    _controller = null;
     previous?.removeListener(_onPlayerChanged);
     await previous?.dispose();
 
-    if (!mounted) {
+    if (!mounted || generation != _startGeneration) {
       return;
     }
     setState(() {
@@ -718,28 +732,36 @@ class _PlayerScreenState extends State<PlayerScreen>
       _error = null;
     });
 
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.channel.url),
+    );
+    _controller = controller;
     try {
-      final controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.channel.url),
-      );
-      _controller = controller;
       controller.addListener(_onPlayerChanged);
       await controller.initialize();
-      if (!mounted) {
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
         return;
       }
       await controller.play();
-      if (mounted) {
-        setState(() => _busy = false);
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
+        return;
       }
+      setState(() => _busy = false);
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _error =
-              'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
-        });
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
+        return;
       }
+      setState(() {
+        _busy = false;
+        _error =
+            'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
+      });
     }
   }
 
@@ -757,6 +779,54 @@ class _PlayerScreenState extends State<PlayerScreen>
       return;
     }
     setState(() {});
+  }
+
+  KeyEventResult _handleRemoteKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return KeyEventResult.ignored;
+    }
+
+    switch (playerRemoteActionForKey(event.logicalKey)) {
+      case PlayerRemoteAction.toggle:
+        _togglePlayback(controller);
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.play:
+        controller.play();
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.pause:
+        controller.pause();
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.seekBackward:
+        _seekBy(controller, const Duration(seconds: -10));
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.seekForward:
+        _seekBy(controller, const Duration(seconds: 10));
+        return KeyEventResult.handled;
+      case null:
+        return KeyEventResult.ignored;
+    }
+  }
+
+  void _seekBy(VideoPlayerController controller, Duration offset) {
+    final target = calculateSeekTarget(
+      position: controller.value.position,
+      duration: controller.value.duration,
+      offset: offset,
+    );
+    if (target == null) return;
+    controller.seekTo(target);
+  }
+
+  void _togglePlayback(VideoPlayerController controller) {
+    if (controller.value.isPlaying) {
+      controller.pause();
+    } else {
+      controller.play();
+    }
   }
 
   @override
@@ -791,67 +861,73 @@ class _PlayerScreenState extends State<PlayerScreen>
         ? controller.value.aspectRatio
         : 16 / 9;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.channel.name)),
-      body: Center(
-        child: _busy
-            ? const CircularProgressIndicator()
-            : _error != null
-                ? Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48),
-                        const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          onPressed: _start,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  )
-                : controller == null || !initialized
-                    ? const Text('Preparando reproductor...')
-                    : AspectRatio(
-                        aspectRatio: aspectRatio,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
+    return FocusTraversalGroup(
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: _handleRemoteKey,
+        child: Scaffold(
+          appBar: AppBar(title: Text(widget.channel.name)),
+          body: Center(
+            child: _busy
+                ? const CircularProgressIndicator()
+                : _error != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            VideoPlayer(controller),
-                            VideoProgressIndicator(
-                              controller,
-                              allowScrubbing: true,
+                            const Icon(Icons.error_outline, size: 48),
+                            const SizedBox(height: 12),
+                            Text(_error!, textAlign: TextAlign.center),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _start,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Reintentar'),
                             ),
-                            Align(
-                              alignment: Alignment.center,
-                              child: IconButton.filledTonal(
-                                iconSize: 42,
-                                onPressed: () {
-                                  if (controller.value.isPlaying) {
-                                    controller.pause();
-                                  } else {
-                                    controller.play();
-                                  }
-                                },
-                                icon: Icon(
-                                  controller.value.isPlaying
-                                      ? Icons.pause
-                                      : Icons.play_arrow,
-                                ),
-                              ),
-                            ),
-                            if (controller.value.isBuffering)
-                              const Align(
-                                alignment: Alignment.topCenter,
-                                child: LinearProgressIndicator(),
-                              ),
                           ],
                         ),
-                      ),
+                      )
+                    : controller == null || !initialized
+                        ? const Text('Preparando reproductor...')
+                        : AspectRatio(
+                            aspectRatio: aspectRatio,
+                            child: Stack(
+                              alignment: Alignment.bottomCenter,
+                              children: [
+                                VideoPlayer(controller),
+                                VideoProgressIndicator(
+                                  controller,
+                                  allowScrubbing: true,
+                                ),
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: IconButton.filledTonal(
+                                    iconSize: 42,
+                                    onPressed: () {
+                                      if (controller.value.isPlaying) {
+                                        controller.pause();
+                                      } else {
+                                        controller.play();
+                                      }
+                                    },
+                                    icon: Icon(
+                                      controller.value.isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
+                                    ),
+                                  ),
+                                ),
+                                if (controller.value.isBuffering)
+                                  const Align(
+                                    alignment: Alignment.topCenter,
+                                    child: LinearProgressIndicator(),
+                                  ),
+                              ],
+                            ),
+                          ),
+          ),
+        ),
       ),
     );
   }

@@ -137,6 +137,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
             itemBuilder: (context, index) {
               final record = records[index];
               final active = record.id == widget.activePlaylistId;
+              final channelLabel =
+                  record.channelCount == 1 ? 'canal' : 'canales';
               return ListTile(
                 leading: Icon(
                   active ? Icons.radio_button_checked : Icons.playlist_play,
@@ -144,7 +146,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 ),
                 title: Text(record.name),
                 subtitle: Text(
-                    '${record.channelCount} canales${active ? ' · Activa' : ''}'),
+                    '${record.channelCount} $channelLabel${active ? ' · Activa' : ''}'),
                 onTap: () => _select(record),
                 trailing: PopupMenuButton<String>(
                   tooltip: 'Acciones de ${record.name}',

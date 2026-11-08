@@ -13,7 +13,7 @@ List<TvChannel> parseM3u(String source) {
       .map((line) => line.trim())
       .firstWhere((line) => line.isNotEmpty, orElse: () => '');
 
-  if (!firstContentLine.toUpperCase().startsWith('#EXTM3U')) {
+  if (!_isM3uHeader(firstContentLine)) {
     throw const FormatException(
         'El archivo no contiene una cabecera M3U válida.');
   }
@@ -28,7 +28,7 @@ List<TvChannel> parseM3u(String source) {
 
   for (final rawLine in lines) {
     final line = rawLine.trim();
-    if (line.isEmpty || line.toUpperCase().startsWith('#EXTM3U')) {
+    if (line.isEmpty || _isM3uHeader(line)) {
       continue;
     }
 
@@ -87,6 +87,10 @@ List<TvChannel> parseM3u(String source) {
   }
 
   return channels;
+}
+
+bool _isM3uHeader(String line) {
+  return RegExp(r'^#EXTM3U(?:\s|$)', caseSensitive: false).hasMatch(line);
 }
 
 bool _isAllowedStreamUri(Uri? uri) {
