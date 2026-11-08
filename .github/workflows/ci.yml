@@ -144,13 +144,21 @@ jobs:
         run: |
           set -euo pipefail
           echo "Validando formato con dart format --set-exit-if-changed --output=none."
-          if ! dart format --set-exit-if-changed --output=none lib test; then
-            echo "::error::Hay archivos Dart que no cumplen 'dart format'."
-            echo "Diff de formato solo para diagnóstico (no altera el repositorio):"
-            dart format lib test
-            git --no-pager diff -- lib test
-            exit 1
+          if dart format --set-exit-if-changed --output=none lib test; then
+            echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
+            exit 0
           fi
+          echo "Hay archivos Dart que no cumplen 'dart format'."
+          dart format lib test
+          git --no-pager diff -- lib test > /tmp/format.diff || true
+          size="$(wc -c < /tmp/format.diff)"
+          echo "Diff de formato: ${size} bytes (se publica como anotaciones)."
+          split -n l/10 /tmp/format.diff /tmp/fmt_
+          for chunk in /tmp/fmt_*; do
+            msg="$(head -c 6800 "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
+            echo "::error title=Format diff::${msg}"
+          done
+          exit 1
           echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
 
       - name: Static analysis (warnings and infos are fatal)
