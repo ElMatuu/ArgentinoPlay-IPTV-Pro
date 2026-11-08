@@ -695,7 +695,7 @@ class _EpgScreenState extends State<EpgScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: DropdownButtonFormField<String>(
-                      value: _category.isEmpty ? null : _category,
+                      initialValue: _category.isEmpty ? null : _category,
                       decoration: const InputDecoration(
                         labelText: 'Filtrar por categoría',
                         border: OutlineInputBorder(),
