@@ -1,8 +1,17 @@
 # Supabase infrastructure for ArgentinoPlay IPTV Pro
 
-This folder contains the versioned database foundation for the approved Option C architecture (local-first + optional cloud sync).
+This folder contains the database foundation for the approved Option C architecture (local-first + optional cloud sync).
 
-## What this migration creates
+## Connected Supabase project
+
+- Project ref: `hjymbvbeygfgngvzetgp`
+- Region: `us-east-1`
+- Current status: active and healthy (checked 2026-11-08)
+- Applied migration version: `20261108132652` (`initial_account_and_sync_schema`)
+
+The project was inspected before applying the migration; it had no existing application tables or migration history. The migration is now applied to this project. This is the current connected project, not a claim that production launch is complete.
+
+## What the migration creates
 
 - profiles: account profile tied to Supabase Auth.
 - devices: user-owned device registrations and revocation state.
@@ -11,27 +20,37 @@ This folder contains the versioned database foundation for the approved Option C
 - user_preferences: small JSON preferences, bounded in size.
 - sync_receipts and sync_cursors: initial idempotency/cursor records for a later transactional sync API.
 
-All tables enable Row Level Security (RLS). Anonymous access is revoked. Policies scope records to auth.uid() and device ownership.
+All seven tables have Row Level Security enabled. Policies scope records to `auth.uid()` and device ownership. Anonymous table privileges are revoked. The auth profile trigger function is not directly executable by anon/authenticated roles.
 
-## Not implemented by this migration
+## Validation performed
 
-- A hosted Supabase project or production database.
-- A transactional push/pull RPC, conflict resolver, tombstone retention or Edge Function.
-- Flutter authentication screens, secure token storage, SQLite or live synchronization.
-- Upload of playlist files or stream URLs.
+- Confirmed the seven expected public tables exist.
+- Confirmed RLS is enabled on all seven tables.
+- Confirmed policies exist for each table.
+- Confirmed the profile trigger function cannot be executed directly by anon/authenticated roles.
+- Security and health advisors returned no findings at the time of validation.
+- Performance advisor reports unused-index INFO notices on a new, empty schema; those are expected before application traffic. Foreign-key coverage was added for the reported relations.
 
-## Owner setup (required once the Supabase integration is connected)
+## Not implemented yet
 
-1. Create a Supabase organization/project owned by the project owner. Choose a region close to intended users and confirm current pricing/limits in the Dashboard before provisioning.
-2. Apply this migration to a development project first. Review the SQL and inspect RLS policies before production.
-3. Keep the database password and sb_secret key server-side only. Never put them in Flutter, GitHub source, build artifacts or chat.
-4. For Flutter, use only the project URL and publishable sb_publishable key. The publishable key is not an authorization mechanism; RLS is mandatory.
-5. Do not add GitHub Actions secrets until a workflow actually consumes them. For deployment automation, use narrowly scoped credentials and a protected GitHub environment.
-6. Test signup, profile creation, device ownership, cross-user isolation, revoked-device rejection, migration rollback and restore before enabling any real sync.
+- Transactional push/pull sync API, conflict resolver, tombstone retention or Edge Functions.
+- Flutter sign-in/sign-up screens and account recovery.
+- Device registration/revocation flows in the app.
+- SQLite local database migration and live synchronization.
+- End-to-end tests with multiple users/devices and cross-user isolation.
 
-## Apply locally
+## Security and operation
 
-Install Supabase CLI and Docker on a trusted development computer, then run:
+1. Keep the app local-first: playback and locally stored playlists must continue to work without network access.
+2. Keep M3U bodies, playlist source URLs, stream URLs, EPG URLs and credentials on-device by default.
+3. For Flutter, use only the project URL and publishable `sb_publishable_` key. RLS is mandatory; a publishable key is not an authorization mechanism.
+4. Never put an `sb_secret_` key, database password or Supabase personal access token in Flutter, APKs, source files or logs.
+5. GitHub Actions only needs the project URL and publishable key for the optional client initialization build. Administrative tokens are not consumed by the Flutter workflow.
+6. Do not merge the infrastructure PR or enable production sync until authentication, ownership checks, conflict handling, backups and restore have been tested.
+
+## Local CLI workflow
+
+On a trusted development computer with Supabase CLI and Docker installed:
 
 ```sh
 supabase start
@@ -39,11 +58,11 @@ supabase db reset
 supabase db lint
 ```
 
-Link a hosted development project only after the owner creates it:
+To link the already-created project:
 
 ```sh
-supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
+supabase link --project-ref hjymbvbeygfgngvzetgp
+supabase migration list
 ```
 
-Do not paste database passwords, access tokens or secret API keys into chat. If direct management through the connected Supabase integration is enabled, use that authenticated connection instead of copying credentials around.
+Do not paste database passwords, access tokens or secret API keys into chat. Use the connected Supabase integration for authorized management tasks.
