@@ -122,8 +122,19 @@ void main() {
     });
 
     test('handles uppercase accents', () {
-      expect(normalizeEpgName('ÁÉÍÓÑ'), 'aeion');
-      expect(normalizeEpgName('ÀÂÄ'), 'aaa');
+      expect(normalizeEpgName('\u00c1\u00c9\u00cd\u00d3\u00d1'), 'aeion');
+      expect(normalizeEpgName('\u00c0\u00c2\u00c4'), 'aaa');
+    });
+
+    test('handles German sharp s', () {
+      expect(normalizeEpgName('Stra\u00dfe'), 'strasse');
+      expect(normalizeEpgName('Wei\u00df'), 'weiss');
+    });
+
+    test('handles Portuguese tilde characters', () {
+      expect(normalizeEpgName('S\u00e3o Paulo'), 'sao paulo');
+      expect(normalizeEpgName('Jo\u00e3o'), 'joao');
+      expect(normalizeEpgName('A\u00f5s'), 'aos');
     });
   });
 }

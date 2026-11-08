@@ -18,173 +18,188 @@ void main() {
       VideoPlayerPlatform.instance = null;
     });
 
-    testWidgets('mediaPlayPause toggles play/pause', (WidgetTester tester) async {
-      final channel = TvChannel(
-        name: 'Test Channel',
-        url: 'https://example.com/stream.m3u8',
-        logo: '',
-        group: 'Test',
-        tvgId: 'test',
-        country: '',
-        language: '',
-      );
+    testWidgets(
+      'mediaPlayPause toggles play/pause',
+      (WidgetTester tester) async {
+        final channel = TvChannel(
+          name: 'Test Channel',
+          url: 'https://example.com/stream.m3u8',
+          logo: '',
+          group: 'Test',
+          tvgId: 'test',
+          country: '',
+          language: '',
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlayerScreen(channel: channel),
-        ),
-      );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: PlayerScreen(channel: channel),
+          ),
+        );
 
-      // Esperar a que el controlador se inicialice
-      await tester.pumpAndSettle();
+        // Esperar a que el controlador se inicialice
+        await tester.pumpAndSettle();
 
-      // Simular tecla mediaPlayPause
-      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
-      await tester.pumpAndSettle();
+        // Simular tecla mediaPlayPause
+        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
+        await tester.pumpAndSettle();
 
-      // Verificar que el video está reproduciéndose
-      final fakeController = fakePlatform.fakeController;
-      expect(fakeController?.isPlaying, true);
+        // Verificar que el video est reproducindose
+        final fakeController = fakePlatform.fakeController;
+        expect(fakeController?.isPlaying, true);
 
-      // Simular tecla mediaPlayPause de nuevo
-      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
-      await tester.pumpAndSettle();
+        // Simular tecla mediaPlayPause de nuevo
+        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
+        await tester.pumpAndSettle();
 
-      // Verificar que el video está pausado
-      expect(fakeController?.isPlaying, false);
-    });
+        // Verificar que el video est pausado
+        expect(fakeController?.isPlaying, false);
+      },
+    );
 
-    testWidgets('mediaPlay ensures playing state', (WidgetTester tester) async {
-      final channel = TvChannel(
-        name: 'Test Channel',
-        url: 'https://example.com/stream.m3u8',
-        logo: '',
-        group: 'Test',
-        tvgId: 'test',
-        country: '',
-        language: '',
-      );
+    testWidgets(
+      'mediaPlay ensures playing state',
+      (WidgetTester tester) async {
+        final channel = TvChannel(
+          name: 'Test Channel',
+          url: 'https://example.com/stream.m3u8',
+          logo: '',
+          group: 'Test',
+          tvgId: 'test',
+          country: '',
+          language: '',
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlayerScreen(channel: channel),
-        ),
-      );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: PlayerScreen(channel: channel),
+          ),
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Pausar el video
-      final fakeController = fakePlatform.fakeController;
-      fakeController?.pause();
-      await tester.pumpAndSettle();
-      expect(fakeController?.isPlaying, false);
+        // Pausar el video
+        final fakeController = fakePlatform.fakeController;
+        fakeController?.pause();
+        await tester.pumpAndSettle();
+        expect(fakeController?.isPlaying, false);
 
-      // Simular tecla mediaPlay
-      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
-      await tester.pumpAndSettle();
+        // Simular tecla mediaPlay
+        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
+        await tester.pumpAndSettle();
 
-      // Verificar que el video está reproduciéndose
-      expect(fakeController?.isPlaying, true);
-    });
+        // Verificar que el video est reproducindose
+        expect(fakeController?.isPlaying, true);
+      },
+    );
 
-    testWidgets('mediaPause ensures paused state', (WidgetTester tester) async {
-      final channel = TvChannel(
-        name: 'Test Channel',
-        url: 'https://example.com/stream.m3u8',
-        logo: '',
-        group: 'Test',
-        tvgId: 'test',
-        country: '',
-        language: '',
-      );
+    testWidgets(
+      'mediaPause ensures paused state',
+      (WidgetTester tester) async {
+        final channel = TvChannel(
+          name: 'Test Channel',
+          url: 'https://example.com/stream.m3u8',
+          logo: '',
+          group: 'Test',
+          tvgId: 'test',
+          country: '',
+          language: '',
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlayerScreen(channel: channel),
-        ),
-      );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: PlayerScreen(channel: channel),
+          ),
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Asegurar que el video está reproduciéndose
-      final fakeController = fakePlatform.fakeController;
-      fakeController?.play();
-      await tester.pumpAndSettle();
-      expect(fakeController?.isPlaying, true);
+        // Asegurar que el video est reproducindose
+        final fakeController = fakePlatform.fakeController;
+        fakeController?.play();
+        await tester.pumpAndSettle();
+        expect(fakeController?.isPlaying, true);
 
-      // Simular tecla mediaPause
-      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
-      await tester.pumpAndSettle();
+        // Simular tecla mediaPause
+        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
+        await tester.pumpAndSettle();
 
-      // Verificar que el video está pausado
-      expect(fakeController?.isPlaying, false);
-    });
+        // Verificar que el video est pausado
+        expect(fakeController?.isPlaying, false);
+      },
+    );
 
-    testWidgets('mediaPause on already paused video stays paused', (WidgetTester tester) async {
-      final channel = TvChannel(
-        name: 'Test Channel',
-        url: 'https://example.com/stream.m3u8',
-        logo: '',
-        group: 'Test',
-        tvgId: 'test',
-        country: '',
-        language: '',
-      );
+    testWidgets(
+      'mediaPause on already paused video stays paused',
+      (WidgetTester tester) async {
+        final channel = TvChannel(
+          name: 'Test Channel',
+          url: 'https://example.com/stream.m3u8',
+          logo: '',
+          group: 'Test',
+          tvgId: 'test',
+          country: '',
+          language: '',
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlayerScreen(channel: channel),
-        ),
-      );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: PlayerScreen(channel: channel),
+          ),
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Asegurar que el video está pausado
-      final fakeController = fakePlatform.fakeController;
-      fakeController?.pause();
-      await tester.pumpAndSettle();
-      expect(fakeController?.isPlaying, false);
+        // Asegurar que el video est pausado
+        final fakeController = fakePlatform.fakeController;
+        fakeController?.pause();
+        await tester.pumpAndSettle();
+        expect(fakeController?.isPlaying, false);
 
-      // Simular tecla mediaPause
-      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
-      await tester.pumpAndSettle();
+        // Simular tecla mediaPause
+        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
+        await tester.pumpAndSettle();
 
-      // Verificar que el video sigue pausado
-      expect(fakeController?.isPlaying, false);
-    });
+        // Verificar que el video sigue pausado
+        expect(fakeController?.isPlaying, false);
+      },
+    );
 
-    testWidgets('mediaPlay on already playing video stays playing', (WidgetTester tester) async {
-      final channel = TvChannel(
-        name: 'Test Channel',
-        url: 'https://example.com/stream.m3u8',
-        logo: '',
-        group: 'Test',
-        tvgId: 'test',
-        country: '',
-        language: '',
-      );
+    testWidgets(
+      'mediaPlay on already playing video stays playing',
+      (WidgetTester tester) async {
+        final channel = TvChannel(
+          name: 'Test Channel',
+          url: 'https://example.com/stream.m3u8',
+          logo: '',
+          group: 'Test',
+          tvgId: 'test',
+          country: '',
+          language: '',
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlayerScreen(channel: channel),
-        ),
-      );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: PlayerScreen(channel: channel),
+          ),
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Asegurar que el video está reproduciéndose
-      final fakeController = fakePlatform.fakeController;
-      fakeController?.play();
-      await tester.pumpAndSettle();
-      expect(fakeController?.isPlaying, true);
+        // Asegurar que el video est reproducindose
+        final fakeController = fakePlatform.fakeController;
+        fakeController?.play();
+        await tester.pumpAndSettle();
+        expect(fakeController?.isPlaying, true);
 
-      // Simular tecla mediaPlay
-      await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
-      await tester.pumpAndSettle();
+        // Simular tecla mediaPlay
+        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
+        await tester.pumpAndSettle();
 
-      // Verificar que el video sigue reproduciéndose
-      expect(fakeController?.isPlaying, true);
-    });
+        // Verificar que el video sigue reproducindose
+        expect(fakeController?.isPlaying, true);
+      },
+    );
   });
 }
 
