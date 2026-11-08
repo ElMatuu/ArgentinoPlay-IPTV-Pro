@@ -137,7 +137,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
             itemBuilder: (context, index) {
               final record = records[index];
               final active = record.id == widget.activePlaylistId;
-              final channelLabel = record.channelCount == 1 ? 'canal' : 'canales';
+              final channelLabel =
+                  record.channelCount == 1 ? 'canal' : 'canales';
               return ListTile(
                 leading: Icon(
                   active ? Icons.radio_button_checked : Icons.playlist_play,
