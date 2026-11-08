@@ -28,8 +28,10 @@ void main() {
         ),
       ]);
 
-      expect(index.programmesFor('news').map((item) => item.title),
-          ['Earlier', 'Later']);
+      expect(
+        index.programmesFor('news').map((item) => item.title),
+        ['Earlier', 'Later'],
+      );
       expect(index.programmesFor('missing'), isEmpty);
       expect(index.programmesFor('sports').single.title, 'Match');
     });
@@ -54,8 +56,9 @@ void main() {
       );
     });
 
-    test('returns the most recently started programme when intervals overlap',
-        () {
+    test(
+      'returns the most recently started programme when intervals overlap',
+      () {
       final earlier = EpgProgramme(
         channelId: 'news',
         title: 'Long bulletin',
@@ -71,11 +74,18 @@ void main() {
       final index = EpgScheduleIndex([later, earlier]);
 
       expect(
-        index.programmeAt('news', start.add(const Duration(minutes: 90)))?.title,
+        index
+            .programmeAt('news', start.add(const Duration(minutes: 90)))
+            ?.title,
         'Breaking news',
       );
       expect(
-        index.programmeAt('news', start.add(const Duration(hours: 2, minutes: 30)))?.title,
+        index
+            .programmeAt(
+              'news',
+              start.add(const Duration(hours: 2, minutes: 30)),
+            )
+            ?.title,
         'Long bulletin',
       );
     });
@@ -90,8 +100,10 @@ void main() {
         ),
       ]);
 
-      expect(index.programmeAt('news', start.add(const Duration(minutes: 30))),
-          isNull);
+      expect(
+        index.programmeAt('news', start.add(const Duration(minutes: 30))),
+        isNull,
+      );
     });
   });
 }
