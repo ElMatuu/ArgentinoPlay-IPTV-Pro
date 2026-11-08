@@ -204,7 +204,28 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
       final suggestedName = result.files.single.name
-          .replaceFirst(RegExp(r'\\.(m3u8?)
+          .replaceFirst(RegExp(r'\.(m3u8?)$', caseSensitive: false), '')
+          .trim();
+      final name = await _requestPlaylistName(suggestedName);
+      if (name == null || !mounted) return;
+      final record = await widget.playlistRepository.createPlaylist(
+        name: name,
+        source: source,
+        channelCount: parsed.length,
+      );
+      await widget.playlistRepository.setActivePlaylistId(record.id);
+      if (!mounted) return;
+      setState(() {
+        _channels = parsed;
+        _activePlaylistId = record.id;
+        _activePlaylistName = record.name;
+        _tab = 0;
+      });
+      _showMessage(
+        'Se guardó "' + record.name + '" con ' +
+            parsed.length.toString() +
+            ' canales. Usá únicamente fuentes autorizadas.',
+      );
     } on FormatException catch (error) {
       _showMessage(error.message);
     } catch (_) {
