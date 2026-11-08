@@ -234,9 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _tab = 0;
       });
       _showMessage(
-        'Se guardó "' + record.name + '" con ' +
-            parsed.length.toString() +
-            ' canales. Usá únicamente fuentes autorizadas.',
+        'Se guardó "${record.name}" con ${parsed.length} canales. Usá únicamente fuentes autorizadas.',
       );
     } on FormatException catch (error) {
       _showMessage(error.message);
