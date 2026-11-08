@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
@@ -767,6 +768,38 @@ class _PlayerScreenState extends State<PlayerScreen>
     setState(() {});
   }
 
+  KeyEventResult _handleRemoteKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return KeyEventResult.ignored;
+    }
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.mediaPlayPause:
+        _togglePlayback(controller);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.mediaPlay:
+        controller.play();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.mediaPause:
+        controller.pause();
+        return KeyEventResult.handled;
+      default:
+        return KeyEventResult.ignored;
+    }
+  }
+
+  void _togglePlayback(VideoPlayerController controller) {
+    if (controller.value.isPlaying) {
+      controller.pause();
+    } else {
+      controller.play();
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final controller = _controller;
@@ -799,8 +832,12 @@ class _PlayerScreenState extends State<PlayerScreen>
         ? controller.value.aspectRatio
         : 16 / 9;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.channel.name)),
+    return FocusTraversalGroup(
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: _handleRemoteKey,
+        child: Scaffold(
+          appBar: AppBar(title: Text(widget.channel.name)),
       body: Center(
         child: _busy
             ? const CircularProgressIndicator()
@@ -860,6 +897,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                           ],
                         ),
                       ),
+      ),
+        ),
       ),
     );
   }
