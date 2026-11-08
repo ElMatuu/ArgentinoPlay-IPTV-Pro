@@ -1,5 +1,3 @@
-import 'package:argentino_play/domain/epg.dart';
-import 'package:argentino_play/domain/tv_channel.dart';
 import 'package:argentino_play/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
