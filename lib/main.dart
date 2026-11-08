@@ -70,7 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _favorites = (prefs.getStringList('favorites') ?? []).toSet();
       _loading = false;
@@ -79,7 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _toggleFavorite(TvChannel channel) async {
     setState(() {
-      if (!_favorites.add(channel.url)) _favorites.remove(channel.url);
+      if (!_favorites.add(channel.url)) {
+        _favorites.remove(channel.url);
+      }
     });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('favorites', _favorites.toList());
@@ -87,18 +91,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _importPlaylist() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['m3u', 'm3u8'], withData: true);
-    if (result == null || result.files.single.bytes == null) return;
+    if (result == null || result.files.single.bytes == null) {
+      return;
+    }
     try {
       final text = utf8.decode(result.files.single.bytes!);
       final parsed = parseM3u(text);
-      if (parsed.isEmpty) throw const FormatException('No se encontraron canales HTTP/HTTPS válidos.');
+      if (parsed.isEmpty) {
+        throw const FormatException('No se encontraron canales HTTP/HTTPS válidos.');
+      }
       if (!mounted) return;
       setState(() => _channels = parsed);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Se importaron ${parsed.length} canales. Verificá que tengas autorización para reproducir sus fuentes.')));
     } on FormatException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo leer la lista seleccionada.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo leer la lista seleccionada.')));
+      }
     }
   }
 
@@ -128,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
           : ListView.builder(itemCount: visible.length, itemBuilder: (context, index) {
               final channel = visible[index];
               return ListTile(
-                leading: CircleAvatar(child: const Icon(Icons.live_tv)),
+                leading: const CircleAvatar(child: Icon(Icons.live_tv)),
                 title: Text(channel.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(channel.group),
                 trailing: IconButton(
@@ -193,9 +205,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _controller = controller;
       await controller.initialize();
       await controller.play();
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     } catch (_) {
-      if (mounted) setState(() { _busy = false; _error = 'No se pudo iniciar la reproducción. Verificá el enlace, el formato y los permisos de la fuente.'; });
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'No se pudo iniciar la reproducción. Verificá el enlace, el formato y los permisos de la fuente.';
+        });
+      }
     }
   }
 
