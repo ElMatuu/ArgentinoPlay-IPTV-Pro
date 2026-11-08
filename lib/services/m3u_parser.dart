@@ -15,7 +15,7 @@ List<TvChannel> parseM3u(String source) {
 
   if (!firstContentLine.toUpperCase().startsWith('#EXTM3U')) {
     throw const FormatException(
-      'El archivo no contiene una cabecera M3U válida.');
+        'El archivo no contiene una cabecera M3U válida.');
   }
 
   final channels = <TvChannel>[];

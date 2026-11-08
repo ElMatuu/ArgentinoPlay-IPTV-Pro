@@ -104,7 +104,7 @@ class PlaylistLibraryRepository {
     if (!await file.exists()) return null;
     if (await file.length() > maxPlaylistBytes) {
       throw const FileSystemException(
-        'Stored playlist exceeds its size limit.');
+          'Stored playlist exceeds its size limit.');
     }
     return file.readAsString(encoding: utf8);
   }
@@ -119,11 +119,11 @@ class PlaylistLibraryRepository {
     final bytes = utf8.encode(source);
     if (cleanName.isEmpty || cleanName.length > 80) {
       throw const FormatException(
-        'Playlist name must contain 1–80 characters.');
+          'Playlist name must contain 1–80 characters.');
     }
     if (channelCount < 1) {
       throw const FormatException(
-        'Playlist must contain at least one channel.');
+          'Playlist must contain at least one channel.');
     }
     if (bytes.length > maxPlaylistBytes) {
       throw const FileSystemException('Playlist exceeds the 5 MB limit.');
@@ -160,7 +160,7 @@ class PlaylistLibraryRepository {
     final cleanName = name.trim();
     if (cleanName.isEmpty || cleanName.length > 80) {
       throw const FormatException(
-        'Playlist name must contain 1–80 characters.');
+          'Playlist name must contain 1–80 characters.');
     }
     final records = await listPlaylists();
     final index = records.indexWhere((record) => record.id == id);

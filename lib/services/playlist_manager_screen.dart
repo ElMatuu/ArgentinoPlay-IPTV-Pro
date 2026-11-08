@@ -90,7 +90,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Eliminar lista'),
         content: Text(
-          '¿Querés eliminar "${record.name}"? Esta acción no se puede deshacer.'),
+            '¿Querés eliminar "${record.name}"? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -132,8 +132,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
           }
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                'No se pudieron cargar las listas: ${snapshot.error}'),
+              child:
+                  Text('No se pudieron cargar las listas: ${snapshot.error}'),
             );
           }
           final records = snapshot.data ?? const <PlaylistRecord>[];
@@ -161,7 +161,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 ),
                 title: Text(record.name),
                 subtitle: Text(
-                  '${record.channelCount} canales${active ? ' · Activa' : ''}'),
+                    '${record.channelCount} canales${active ? ' · Activa' : ''}'),
                 onTap: () => _select(record),
                 trailing: PopupMenuButton<String>(
                   tooltip: 'Acciones de ${record.name}',

@@ -83,7 +83,7 @@ class LocalLibraryRepository {
     final length = await file.length();
     if (length > maxBytes) {
       throw const FileSystemException(
-        'Stored library item exceeds its size limit.');
+          'Stored library item exceeds its size limit.');
     }
     return file.readAsString(encoding: utf8);
   }

@@ -92,7 +92,7 @@ DateTime? parseXmltvTimestamp(String value) {
       }
       final offset = Duration(hours: offsetHours, minutes: offsetMinutes);
       timestamp =
-        sign == '+' ? timestamp.subtract(offset) : timestamp.add(offset);
+          sign == '+' ? timestamp.subtract(offset) : timestamp.add(offset);
     }
     return timestamp;
   } on ArgumentError {

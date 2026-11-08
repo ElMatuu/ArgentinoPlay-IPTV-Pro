@@ -368,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final visible = _channels.where((channel) {
       final matches =
           channel.name.toLowerCase().contains(_query.toLowerCase()) ||
-          channel.group.toLowerCase().contains(_query.toLowerCase());
+              channel.group.toLowerCase().contains(_query.toLowerCase());
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
       final inGuide =
           _tab != 2 || (_guide?.channels.containsKey(channel.tvgId) ?? false);
