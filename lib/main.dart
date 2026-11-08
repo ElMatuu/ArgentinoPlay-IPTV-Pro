@@ -594,7 +594,7 @@ class _EmptyState extends StatelessWidget {
     final description = favoritesOnly
         ? 'Marcá canales con el corazón para encontrarlos acá.'
         : guideOnly
-            ? 'Importá una guía XMLTV y vinculala mediante el identificador tvg-id de cada canal.'
+            ? 'Importá una guía XMLTV. Los canales se vinculan por tvg-id o, si falta, por un nombre único.'
             : 'Importá una lista M3U/M3U8 de fuentes propias, públicas autorizadas o licenciadas.';
     final icon = favoritesOnly
         ? Icons.favorite_border
@@ -648,7 +648,10 @@ class EpgScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final programmes = guide.programmesFor(channel.tvgId);
+    final matchedChannel = matchEpgChannel(channel, guide);
+    final programmes = matchedChannel == null
+        ? const <EpgProgramme>[]
+        : guide.programmesFor(matchedChannel.id);
     return Scaffold(
       appBar: AppBar(title: Text('Programación · ${channel.name}')),
       body: programmes.isEmpty
