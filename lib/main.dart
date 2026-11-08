@@ -461,9 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             final programme = _currentProgramme(channel);
                             final isFavorite = _favorites.contains(channel.url);
                             return ListTile(
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.live_tv),
-                              ),
+                              leading: ChannelLogo(url: channel.logo),
                               title: Text(
                                 channel.name,
                                 maxLines: 1,
