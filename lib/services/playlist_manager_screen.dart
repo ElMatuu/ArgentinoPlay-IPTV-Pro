@@ -39,6 +39,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
       }
       if (!mounted) return;
       await widget.repository.setActivePlaylistId(record.id);
+      if (!mounted) return;
       widget.onSelected(record, source);
       Navigator.of(context).pop();
     } catch (error) {
