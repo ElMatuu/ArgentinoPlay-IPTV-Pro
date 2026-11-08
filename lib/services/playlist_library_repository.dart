@@ -156,6 +156,53 @@ class PlaylistLibraryRepository {
     return record;
   }
 
+  /// Replaces a playlist source without changing its identity or selection.
+  ///
+  /// The source is written atomically. If updating the manifest fails, the
+  /// previous source is restored so its channel count stays consistent.
+  Future<PlaylistRecord> replacePlaylistSource({
+    required String id,
+    required String source,
+    required int channelCount,
+  }) async {
+    final bytes = utf8.encode(source);
+    if (channelCount < 1) {
+      throw const FormatException(
+          'Playlist must contain at least one channel.');
+    }
+    if (bytes.length > maxPlaylistBytes) {
+      throw const FileSystemException('Playlist exceeds the 5 MB limit.');
+    }
+
+    final records = await listPlaylists();
+    final index = records.indexWhere((record) => record.id == id);
+    if (index < 0) throw const FormatException('Playlist not found.');
+
+    final sourceFile = await _sourceFile(id);
+    if (!await sourceFile.exists()) {
+      throw const FileSystemException('Stored playlist source is missing.');
+    }
+    final previousBytes = await sourceFile.readAsBytes();
+    final old = records[index];
+    final updated = PlaylistRecord(
+      id: old.id,
+      name: old.name,
+      channelCount: channelCount,
+      createdAt: old.createdAt,
+      updatedAt: DateTime.now().toUtc(),
+    );
+
+    await _atomicWrite(sourceFile, bytes);
+    records[index] = updated;
+    try {
+      await _writeManifest(records);
+    } catch (_) {
+      await _atomicWrite(sourceFile, previousBytes);
+      rethrow;
+    }
+    return updated;
+  }
+
   Future<PlaylistRecord> renamePlaylist(String id, String name) async {
     final cleanName = name.trim();
     if (cleanName.isEmpty || cleanName.length > 80) {
