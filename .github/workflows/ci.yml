@@ -64,7 +64,7 @@ jobs:
           import re
 
           launcher_pattern = re.compile(
-              r'(<category\\s+android:name="android.intent.category.LAUNCHER"\\s*/>\\s*</intent-filter>)'
+              r'(<category\s+android:name="android.intent.category.LAUNCHER"\s*/>\s*</intent-filter>)'
           )
           match = launcher_pattern.search(source)
           if match is None or "android.intent.category.LEANBACK_LAUNCHER" in source:
