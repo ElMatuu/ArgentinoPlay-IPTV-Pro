@@ -218,14 +218,43 @@ class PlaylistLibraryRepository {
 
   Future<void> _atomicWrite(File destination, List<int> bytes) async {
     final temporary = File('${destination.path}.tmp');
+    final backup = File('${destination.path}.bak');
+
+    // Recover an interrupted previous replacement before starting another one.
+    if (await backup.exists()) {
+      if (await destination.exists()) {
+        await backup.delete();
+      } else {
+        await backup.rename(destination.path);
+      }
+    }
+
     await temporary.writeAsBytes(bytes, flush: true);
+    var movedOriginal = false;
     try {
+      if (await destination.exists()) {
+        await destination.rename(backup.path);
+        movedOriginal = true;
+      }
       await temporary.rename(destination.path);
-    } on FileSystemException {
-      if (await destination.exists()) await destination.delete();
-      await temporary.rename(destination.path);
+      if (movedOriginal && await backup.exists()) {
+        await backup.delete();
+      }
+    } catch (_) {
+      // If installing the new file fails, put the previous file back.
+      if (movedOriginal &&
+          !await destination.exists() &&
+          await backup.exists()) {
+        await backup.rename(destination.path);
+      }
+      rethrow;
     } finally {
-      if (await temporary.exists()) await temporary.delete();
+      if (await temporary.exists()) {
+        await temporary.delete();
+      }
+      if (await destination.exists() && await backup.exists()) {
+        await backup.delete();
+      }
     }
   }
 }
