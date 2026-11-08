@@ -38,9 +38,24 @@ void main() {
       );
     });
 
+    test('maps Android and desktop back keys to back navigation', () {
+      expect(
+        playerRemoteActionForKey(LogicalKeyboardKey.goBack),
+        PlayerRemoteAction.back,
+      );
+      expect(
+        playerRemoteActionForKey(LogicalKeyboardKey.escape),
+        PlayerRemoteAction.back,
+      );
+      expect(
+        playerRemoteActionForKey(LogicalKeyboardKey.browserBack),
+        PlayerRemoteAction.back,
+      );
+    });
+
     test('ignores navigation keys without a player action', () {
       expect(playerRemoteActionForKey(LogicalKeyboardKey.arrowUp), isNull);
-      expect(playerRemoteActionForKey(LogicalKeyboardKey.escape), isNull);
+      expect(playerRemoteActionForKey(LogicalKeyboardKey.tab), isNull);
     });
   });
 }

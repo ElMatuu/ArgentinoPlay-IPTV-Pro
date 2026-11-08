@@ -785,12 +785,20 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
     }
+    final action = playerRemoteActionForKey(event.logicalKey);
+    // Back navigation must remain available while the player is loading or
+    // showing an error, even when no initialized video controller exists.
+    if (action == PlayerRemoteAction.back) {
+      Navigator.of(context).maybePop();
+      return KeyEventResult.handled;
+    }
+
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
       return KeyEventResult.ignored;
     }
 
-    switch (playerRemoteActionForKey(event.logicalKey)) {
+    switch (action) {
       case PlayerRemoteAction.toggle:
         _togglePlayback(controller);
         return KeyEventResult.handled;
@@ -801,10 +809,18 @@ class _PlayerScreenState extends State<PlayerScreen>
         controller.pause();
         return KeyEventResult.handled;
       case PlayerRemoteAction.seekBackward:
+        // Only seek while the player surface itself owns focus. If a child
+        // control is focused, let the directional event bubble to Flutter's
+        // focus traversal system instead of trapping the D-pad on the player.
+        if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
         _seekBy(controller, const Duration(seconds: -10));
         return KeyEventResult.handled;
       case PlayerRemoteAction.seekForward:
+        if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
         _seekBy(controller, const Duration(seconds: 10));
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.back:
+        Navigator.of(context).maybePop();
         return KeyEventResult.handled;
       case null:
         return KeyEventResult.ignored;

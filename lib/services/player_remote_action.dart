@@ -6,6 +6,7 @@ enum PlayerRemoteAction {
   pause,
   seekBackward,
   seekForward,
+  back,
 }
 
 PlayerRemoteAction? playerRemoteActionForKey(LogicalKeyboardKey key) {
@@ -23,6 +24,11 @@ PlayerRemoteAction? playerRemoteActionForKey(LogicalKeyboardKey key) {
   }
   if (key == LogicalKeyboardKey.arrowRight) {
     return PlayerRemoteAction.seekForward;
+  }
+  if (key == LogicalKeyboardKey.goBack ||
+      key == LogicalKeyboardKey.escape ||
+      key == LogicalKeyboardKey.browserBack) {
+    return PlayerRemoteAction.back;
   }
   return null;
 }
