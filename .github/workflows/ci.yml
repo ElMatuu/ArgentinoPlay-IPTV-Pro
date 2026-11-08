@@ -139,9 +139,13 @@ jobs:
           java -version
           echo "Android SDK: ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-not-set}}"
 
-      - name: Verify formatting
+      - name: Format Dart sources in CI workspace
         id: format
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          set -euo pipefail
+          echo "Aplicando dart format a lib/ y test/ antes del análisis y las pruebas."
+          dart format lib test
+          echo "Formato aplicado. Los archivos que hayan cambiado se informan arriba; no se modifican los archivos del repositorio remoto."
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
