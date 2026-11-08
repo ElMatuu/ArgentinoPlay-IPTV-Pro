@@ -48,5 +48,38 @@ void main() {
         isNull,
       );
     });
+
+    test('returns null for a negative duration', () {
+      expect(
+        calculateSeekTarget(
+          position: const Duration(seconds: 5),
+          duration: const Duration(seconds: -1),
+          offset: const Duration(seconds: 10),
+        ),
+        isNull,
+      );
+    });
+
+    test('clamps an out-of-range current position before seeking', () {
+      expect(
+        calculateSeekTarget(
+          position: const Duration(minutes: 3),
+          duration: duration,
+          offset: const Duration(seconds: -10),
+        ),
+        duration,
+      );
+    });
+
+    test('handles offsets larger than the media duration', () {
+      expect(
+        calculateSeekTarget(
+          position: const Duration(seconds: 30),
+          duration: duration,
+          offset: const Duration(hours: 1),
+        ),
+        duration,
+      );
+    });
   });
 }
