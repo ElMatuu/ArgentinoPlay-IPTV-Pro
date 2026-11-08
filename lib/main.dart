@@ -16,7 +16,7 @@ export 'domain/tv_channel.dart';
 export 'services/m3u_parser.dart';
 export 'services/xmltv_parser.dart';
 
-void main() => runApp(const ArgentinoPlayApp());
+void main() => runApp(ArgentinoPlayApp());
 
 class ArgentinoPlayApp extends StatelessWidget {
   ArgentinoPlayApp({super.key, LocalLibraryRepository? libraryRepository})
