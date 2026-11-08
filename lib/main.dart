@@ -1,45 +1,13 @@
-import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
-void main() => runApp(const ArgentinoPlayApp());
+import 'domain/tv_channel.dart';
+import 'services/m3u_parser.dart';
 
-class TvChannel {
-  const TvChannel({required this.name, required this.url, this.logo = '', this.group = 'General'});
-  final String name;
-  final String url;
-  final String logo;
-  final String group;
-}
-
-List<TvChannel> parseM3u(String source) {
-  final channels = <TvChannel>[];
-  String? name;
-  String logo = '';
-  String group = 'General';
-  for (final raw in const LineSplitter().convert(source)) {
-    final line = raw.trim();
-    if (line.startsWith('#EXTINF:')) {
-      final comma = line.indexOf(',');
-      name = comma >= 0 ? line.substring(comma + 1).trim() : 'Canal sin nombre';
-      final logoMatch = RegExp(r'tvg-logo="([^"]*)"').firstMatch(line);
-      final groupMatch = RegExp(r'group-title="([^"]*)"').firstMatch(line);
-      logo = logoMatch?.group(1) ?? '';
-      group = groupMatch?.group(1) ?? 'General';
-    } else if (line.isNotEmpty && !line.startsWith('#') && name != null) {
-      final uri = Uri.tryParse(line);
-      if (uri != null && (uri.scheme == 'https' || uri.scheme == 'http')) {
-        channels.add(TvChannel(name: name, url: line, logo: logo, group: group));
-      }
-      name = null;
-      logo = '';
-      group = 'General';
-    }
-  }
-  return channels;
-}
+export 'domain/tv_channel.dart';
+export 'services/m3u_parser.dart';
 
 class ArgentinoPlayApp extends StatelessWidget {
   const ArgentinoPlayApp({super.key});
