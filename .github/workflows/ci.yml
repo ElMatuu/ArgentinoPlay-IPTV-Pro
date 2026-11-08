@@ -36,6 +36,59 @@ jobs:
       - name: Generate Android platform scaffolding
         run: flutter create --platforms=android --project-name argentino_play .
 
+      - name: Configure Android app identity and TV launcher support
+        shell: python
+        run: |
+          from pathlib import Path
+          import sys
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          source = manifest.read_text(encoding="utf-8")
+          expected = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+
+          if source.count(expected) != 1:
+              print("::error::No se reconoce el manifiesto Android generado por Flutter.")
+              sys.exit(1)
+
+          source = source.replace(
+              expected,
+              expected + """
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-feature android:name="android.software.leanback" android:required="false" />
+              <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+              """,
+              1,
+          )
+
+          source = source.replace('android:label="argentino_play"', 'android:label="ArgentinoPlay"', 1)
+          launcher = """                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>"""
+          tv_launcher = """                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+            </intent-filter>"""
+          if source.count(launcher) != 1:
+              print("::error::No se encontró el intent-filter móvil esperado.")
+              sys.exit(1)
+          source = source.replace(launcher, tv_launcher, 1)
+          manifest.write_text(source, encoding="utf-8")
+
+          gradle = Path("android/app/build.gradle.kts")
+          gradle_source = gradle.read_text(encoding="utf-8")
+          placeholder = 'applicationId = "com.example.argentino_play"'
+          if gradle_source.count(placeholder) != 1:
+              print("::error::No se encontró el applicationId Flutter esperado.")
+              sys.exit(1)
+          gradle.write_text(
+              gradle_source.replace(placeholder, 'applicationId = "com.argentinoplay.app"', 1),
+              encoding="utf-8",
+          )
+          print("Manifiesto Android configurado: Internet, launcher móvil y Android TV.")
+          print("Application ID configurado: com.argentinoplay.app")
+
+
       - name: Configure and verify Android API 36
         id: android_sdk
         shell: bash
