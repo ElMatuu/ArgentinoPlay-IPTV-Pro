@@ -48,32 +48,15 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
   }
 
   Future<void> _rename(PlaylistRecord record) async {
-    final controller = TextEditingController(text: record.name);
     final name = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Renombrar lista'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 80,
-          decoration: const InputDecoration(labelText: 'Nombre'),
-          textCapitalization: TextCapitalization.sentences,
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Guardar'),
-          ),
-        ],
+      builder: (context) => PlaylistNameDialog(
+        dialogTitle: 'Renombrar lista',
+        initialValue: record.name,
+        labelText: 'Nombre',
+        confirmLabel: 'Guardar',
       ),
     );
-    controller.dispose();
     if (name == null) return;
     try {
       await widget.repository.renamePlaylist(record.id, name);
@@ -179,6 +162,72 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+
+/// AlertDialog that owns its TextEditingController.
+///
+/// The controller is disposed when the dialog's state is disposed, which only
+/// happens after the route (and its TextField) finished unmounting. Disposing
+/// it right after [showDialog] returns crashed the closing animation because
+/// the TextField still listened to a disposed controller.
+class PlaylistNameDialog extends StatefulWidget {
+  const PlaylistNameDialog({
+    super.key,
+    required this.dialogTitle,
+    required this.initialValue,
+    required this.labelText,
+    required this.confirmLabel,
+  });
+
+  final String dialogTitle;
+  final String initialValue;
+  final String labelText;
+  final String confirmLabel;
+
+  @override
+  State<PlaylistNameDialog> createState() => _PlaylistNameDialogState();
+}
+
+class _PlaylistNameDialogState extends State<PlaylistNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.dialogTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 80,
+        decoration: InputDecoration(labelText: widget.labelText),
+        textCapitalization: TextCapitalization.sentences,
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(widget.confirmLabel),
+        ),
+      ],
     );
   }
 }

@@ -246,32 +246,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<String?> _requestPlaylistName(String suggestedName) async {
-    final controller = TextEditingController(text: suggestedName);
-    final name = await showDialog<String>(
+    return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Guardar nueva lista'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 80,
-          decoration: const InputDecoration(labelText: 'Nombre de la lista'),
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Guardar'),
-          ),
-        ],
+      builder: (context) => PlaylistNameDialog(
+        dialogTitle: 'Guardar nueva lista',
+        initialValue: suggestedName,
+        labelText: 'Nombre de la lista',
+        confirmLabel: 'Guardar',
       ),
     );
-    controller.dispose();
-    return name;
   }
 
   Future<void> _openPlaylistManager() async {
