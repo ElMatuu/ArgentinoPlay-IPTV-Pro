@@ -97,10 +97,10 @@ void main() {
       ),
     );
     await tester.tap(find.text('Abrir listas'));
-    // The in-memory repository resolves deterministically; no filesystem I/O
-    // or indeterminate loading animation is needed in these widget tests.
-    await tester.pump();
-    await tester.pump();
+    // Wait for the pushed route's entrance transition to finish before
+    // interacting with controls; otherwise widgets are still translated
+    // beyond the test viewport.
+    await tester.pumpAndSettle();
   }
 
   testWidgets('shows saved playlist and channel count', (tester) async {
@@ -114,14 +114,6 @@ void main() {
   testWidgets('renames a playlist from its actions menu', (tester) async {
     await openManager(tester, onSelected: (_, __) {});
 
-    final popupRect = tester.getRect(find.byType(PopupMenuButton<String>));
-    expect(
-      popupRect.right,
-      lessThanOrEqualTo(tester.view.physicalSize.width),
-      reason: 'popupRect=$popupRect; scaffold=${tester.getRect(find.byType(Scaffold).last)}; '
-          'listTile=${tester.getRect(find.byType(ListTile))}; '
-          'view=${tester.view.physicalSize}; dpr=${tester.view.devicePixelRatio}',
-    );
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Renombrar'));
