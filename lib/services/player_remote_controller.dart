@@ -1,70 +1,88 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
 
-/// Handles remote control actions for video playback.
-///
-/// This class provides a clean separation between the remote control logic
-/// and the UI, allowing for easier testing and reusability.
+/// Minimal playback contract used by remote-control actions.
+abstract interface class RemotePlaybackController {
+  bool get isInitialized;
+  bool get isPlaying;
+  Future<void> play();
+  Future<void> pause();
+}
+
+/// Adapts the app's video_player controller to the remote playback contract.
+class VideoPlayerRemotePlaybackController
+    implements RemotePlaybackController {
+  VideoPlayerRemotePlaybackController(this._controller);
+
+  final VideoPlayerController _controller;
+
+  @override
+  bool get isInitialized => _controller.value.isInitialized;
+
+  @override
+  bool get isPlaying => _controller.value.isPlaying;
+
+  @override
+  Future<void> play() => _controller.play();
+
+  @override
+  Future<void> pause() => _controller.pause();
+}
+
+/// Handles media-key actions independently from the concrete video player.
 class PlayerRemoteController {
-  final VideoPlayerController? _controller;
-
-  /// Creates a [PlayerRemoteController] for the given video player controller.
   PlayerRemoteController(this._controller);
 
+  /// Creates a remote controller backed by the app's video player.
+  factory PlayerRemoteController.fromVideoPlayer(
+    VideoPlayerController? controller,
+  ) {
+    return PlayerRemoteController(
+      controller == null
+          ? null
+          : VideoPlayerRemotePlaybackController(controller),
+    );
+  }
+
+  final RemotePlaybackController? _controller;
+
   /// Toggles between play and pause states.
-  ///
-  /// If the controller is playing, it will be paused. If paused, it will play.
-  /// Does nothing if the controller is null or not initialized.
   void togglePlayPause() {
     final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
+    if (controller == null || !controller.isInitialized) {
       return;
     }
-    if (controller.value.isPlaying) {
+    if (controller.isPlaying) {
       controller.pause();
     } else {
       controller.play();
     }
   }
 
-  /// Ensures the video is playing.
-  ///
-  /// If the controller is already playing, this is a no-op.
-  /// If paused, it will start playing.
-  /// Does nothing if the controller is null or not initialized.
+  /// Ensures playback is started when the player is initialized.
   void play() {
     final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
+    if (controller == null || !controller.isInitialized) {
       return;
     }
     controller.play();
   }
 
-  /// Ensures the video is paused.
-  ///
-  /// If the controller is already paused, this is a no-op.
-  /// If playing, it will be paused.
-  /// Does nothing if the controller is null or not initialized.
+  /// Ensures playback is paused when the player is initialized.
   void pause() {
     final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
+    if (controller == null || !controller.isInitialized) {
       return;
     }
     controller.pause();
   }
 
-  /// Returns the shortcut bindings for remote control keys.
-  ///
-  /// Maps media keys to their respective actions:
-  /// - mediaPlayPause: toggles play/pause
-  /// - mediaPlay: ensures playing
-  /// - mediaPause: ensures paused
+  /// Returns the shortcut bindings for Android TV media keys.
   Map<ShortcutActivator, VoidCallback> remoteShortcuts() {
     return {
-      SingleActivator(LogicalKeyboardKey.mediaPlayPause): togglePlayPause,
-      SingleActivator(LogicalKeyboardKey.mediaPlay): play,
-      SingleActivator(LogicalKeyboardKey.mediaPause): pause,
+      const SingleActivator(LogicalKeyboardKey.mediaPlayPause):
+          togglePlayPause,
+      const SingleActivator(LogicalKeyboardKey.mediaPlay): play,
+      const SingleActivator(LogicalKeyboardKey.mediaPause): pause,
     };
   }
 }
