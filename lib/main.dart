@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
+import 'services/player_remote_controller.dart';
+
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
 import 'services/local_library_repository.dart';
@@ -717,6 +719,7 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   VideoPlayerController? _controller;
+  late PlayerRemoteController _remoteController;
   String? _error;
   bool _busy = true;
   bool _wasPlayingBeforePause = false;
@@ -724,6 +727,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void initState() {
     super.initState();
+    _remoteController = PlayerRemoteController(_controller);
     WidgetsBinding.instance.addObserver(this);
     _start();
   }
@@ -746,6 +750,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         Uri.parse(widget.channel.url),
       );
       _controller = controller;
+      _remoteController = PlayerRemoteController(controller);
       controller.addListener(_onPlayerChanged);
       await controller.initialize();
       if (!mounted) {
@@ -782,40 +787,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     setState(() {});
   }
 
-  void _togglePlayPause() {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-    if (controller.value.isPlaying) {
-      controller.pause();
-    } else {
-      controller.play();
-    }
-  }
-
-  void _play() {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-    controller.play();
-  }
-
-  void _pause() {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-    controller.pause();
-  }
-
   Map<ShortcutActivator, VoidCallback> _remoteShortcuts() {
-    return {
-      SingleActivator(LogicalKeyboardKey.mediaPlayPause): _togglePlayPause,
-      SingleActivator(LogicalKeyboardKey.mediaPlay): _play,
-      SingleActivator(LogicalKeyboardKey.mediaPause): _pause,
-    };
+    return _remoteController.remoteShortcuts();
   }
 
   @override
