@@ -206,15 +206,57 @@ jobs:
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
+        run: |
+          if flutter analyze --fatal-infos --fatal-warnings > /tmp/analyze.out 2>&1; then
+            cat /tmp/analyze.out
+          else
+            code=$?
+            cat /tmp/analyze.out
+            sed -e 's/%/%25/g' -e 's/\r/%0D/g' /tmp/analyze.out | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/analyze.msg
+            split -b 850 -d /tmp/analyze.msg /tmp/az_
+            count=0
+            for chunk in /tmp/az_*; do
+              count=$((count+1))
+              echo "::error title=Analyze output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Automated tests
         id: tests
-        run: flutter test --reporter expanded
+        run: |
+          if flutter test --reporter expanded > /tmp/test.out 2>&1; then
+            cat /tmp/test.out
+          else
+            code=$?
+            cat /tmp/test.out
+            tail -c 8000 /tmp/test.out | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/test.msg
+            split -b 850 -d /tmp/test.msg /tmp/ts_
+            count=0
+            for chunk in /tmp/ts_*; do
+              count=$((count+1))
+              echo "::error title=Test output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Build debug APK (full Gradle diagnostics)
         id: build
-        run: flutter build apk --debug --verbose
+        run: |
+          if flutter build apk --debug > /tmp/build.out 2>&1; then
+            cat /tmp/build.out
+          else
+            code=$?
+            cat /tmp/build.out
+            tail -c 8000 /tmp/build.out | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/build.msg
+            split -b 850 -d /tmp/build.msg /tmp/bu_
+            count=0
+            for chunk in /tmp/bu_*; do
+              count=$((count+1))
+              echo "::error title=Build output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Upload debug APK
         id: upload
