@@ -125,6 +125,11 @@ jobs:
           print(f"Configuración aplicada: {properties} -> {warning_setting}")
           PY
 
+          echo "Plataformas Android instaladas:"
+          "$SDKMANAGER" --list_installed
+          echo "Valor compileSdk configurado:"
+          grep -nE 'compileSdk(Version)?[[:space:]]*(=|)[[:space:]]*36' android/app/build.gradle*
+
       - name: Upload generated Android platform scaffold
         uses: actions/upload-artifact@v4
         with:
@@ -132,11 +137,6 @@ jobs:
           path: android/
           if-no-files-found: error
           retention-days: 7
-
-          echo "Plataformas Android instaladas:"
-          "$SDKMANAGER" --list_installed
-          echo "Valor compileSdk configurado:"
-          grep -nE 'compileSdk(Version)?[[:space:]]*(=|)[[:space:]]*36' android/app/build.gradle*
 
       - name: Install dependencies
         run: flutter pub get
