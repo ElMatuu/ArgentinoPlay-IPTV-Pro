@@ -22,6 +22,15 @@ void main() {
       expect(channels.single.language, 'es');
     });
 
+    test('rejects a malformed header that only starts with EXT M3U text', () {
+      expect(
+        () => parseM3u('#EXTM3U_INVALID\\n'
+            '#EXTINF:-1,Canal\\n'
+            'https://example.org/live.m3u8'),
+        throwsFormatException,
+      );
+    });
+
     test('supports UTF-8 BOM and CRLF line endings', () {
       const playlist = '\uFEFF#EXTM3U\r\n'
           '#EXTINF:-1,Canal Demo\r\n'
