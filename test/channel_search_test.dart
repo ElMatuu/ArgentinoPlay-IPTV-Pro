@@ -31,6 +31,8 @@ void main() {
 
     test('requires all search terms to match catalogue metadata', () {
       expect(channelMatchesQuery(channel, 'argentina espanol'), isTrue);
+      expect(channelMatchesQuery(channel, 'argentina   espanol'), isTrue);
+      expect(channelMatchesQuery(channel, 'argentina\\tespanol'), isTrue);
       expect(channelMatchesQuery(channel, 'argentina deportes'), isFalse);
     });
 
