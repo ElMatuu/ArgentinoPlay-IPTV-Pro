@@ -794,14 +794,27 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  void _play() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    controller.play();
+  }
+
+  void _pause() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    controller.pause();
+  }
+
   Map<ShortcutActivator, VoidCallback> _remoteShortcuts() {
     return {
-      for (final key in [
-        LogicalKeyboardKey.mediaPlayPause,
-        LogicalKeyboardKey.mediaPlay,
-        LogicalKeyboardKey.mediaPause,
-      ])
-        SingleActivator(key): _togglePlayPause,
+      SingleActivator(LogicalKeyboardKey.mediaPlayPause): _togglePlayPause,
+      SingleActivator(LogicalKeyboardKey.mediaPlay): _play,
+      SingleActivator(LogicalKeyboardKey.mediaPause): _pause,
     };
   }
 

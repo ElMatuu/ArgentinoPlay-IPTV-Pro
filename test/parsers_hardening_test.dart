@@ -103,5 +103,27 @@ void main() {
       expect(normalizeEpgName('  Canal   A!! '), 'canal a');
       expect(normalizeEpgName('Espectáculo ÁÉÍÓÚ'), 'espectaculo aeiou');
     });
+
+    test('handles French accents', () {
+      expect(normalizeEpgName('Café'), 'cafe');
+      expect(normalizeEpgName('Hôtel'), 'hotel');
+      expect(normalizeEpgName('Ça va'), 'ca va');
+    });
+
+    test('handles German umlauts', () {
+      expect(normalizeEpgName('München'), 'munchen');
+      expect(normalizeEpgName('Köln'), 'koln');
+      expect(normalizeEpgName('Düsseldorf'), 'dusseldorf');
+    });
+
+    test('handles Portuguese accents', () {
+      expect(normalizeEpgName('São Paulo'), 'sao paulo');
+      expect(normalizeEpgName('Rio de Janeiro'), 'rio de janeiro');
+    });
+
+    test('handles uppercase accents', () {
+      expect(normalizeEpgName('ÁÉÍÓÑ'), 'aeion');
+      expect(normalizeEpgName('ÀÂÄ'), 'aaa');
+    });
   });
 }
