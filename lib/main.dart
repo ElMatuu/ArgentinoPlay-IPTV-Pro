@@ -838,66 +838,66 @@ class _PlayerScreenState extends State<PlayerScreen>
         onKeyEvent: _handleRemoteKey,
         child: Scaffold(
           appBar: AppBar(title: Text(widget.channel.name)),
-      body: Center(
-        child: _busy
-            ? const CircularProgressIndicator()
-            : _error != null
-                ? Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48),
-                        const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          onPressed: _start,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  )
-                : controller == null || !initialized
-                    ? const Text('Preparando reproductor...')
-                    : AspectRatio(
-                        aspectRatio: aspectRatio,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
+          body: Center(
+            child: _busy
+                ? const CircularProgressIndicator()
+                : _error != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            VideoPlayer(controller),
-                            VideoProgressIndicator(
-                              controller,
-                              allowScrubbing: true,
+                            const Icon(Icons.error_outline, size: 48),
+                            const SizedBox(height: 12),
+                            Text(_error!, textAlign: TextAlign.center),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _start,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Reintentar'),
                             ),
-                            Align(
-                              alignment: Alignment.center,
-                              child: IconButton.filledTonal(
-                                iconSize: 42,
-                                onPressed: () {
-                                  if (controller.value.isPlaying) {
-                                    controller.pause();
-                                  } else {
-                                    controller.play();
-                                  }
-                                },
-                                icon: Icon(
-                                  controller.value.isPlaying
-                                      ? Icons.pause
-                                      : Icons.play_arrow,
-                                ),
-                              ),
-                            ),
-                            if (controller.value.isBuffering)
-                              const Align(
-                                alignment: Alignment.topCenter,
-                                child: LinearProgressIndicator(),
-                              ),
                           ],
                         ),
-                      ),
-      ),
+                      )
+                    : controller == null || !initialized
+                        ? const Text('Preparando reproductor...')
+                        : AspectRatio(
+                            aspectRatio: aspectRatio,
+                            child: Stack(
+                              alignment: Alignment.bottomCenter,
+                              children: [
+                                VideoPlayer(controller),
+                                VideoProgressIndicator(
+                                  controller,
+                                  allowScrubbing: true,
+                                ),
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: IconButton.filledTonal(
+                                    iconSize: 42,
+                                    onPressed: () {
+                                      if (controller.value.isPlaying) {
+                                        controller.pause();
+                                      } else {
+                                        controller.play();
+                                      }
+                                    },
+                                    icon: Icon(
+                                      controller.value.isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
+                                    ),
+                                  ),
+                                ),
+                                if (controller.value.isBuffering)
+                                  const Align(
+                                    alignment: Alignment.topCenter,
+                                    child: LinearProgressIndicator(),
+                                  ),
+                              ],
+                            ),
+                          ),
+          ),
         ),
       ),
     );
