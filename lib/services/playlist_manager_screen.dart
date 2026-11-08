@@ -166,7 +166,6 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
   }
 }
 
-
 /// AlertDialog that owns its TextEditingController.
 ///
 /// The controller is disposed when the dialog's state is disposed, which only
