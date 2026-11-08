@@ -139,13 +139,19 @@ jobs:
           java -version
           echo "Android SDK: ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-not-set}}"
 
-      - name: Format Dart sources in CI workspace
+      - name: Validate Dart formatting (no silent workspace rewrites)
         id: format
         run: |
           set -euo pipefail
-          echo "Aplicando dart format a lib/ y test/ antes del análisis y las pruebas."
-          dart format lib test
-          echo "Formato aplicado. Los archivos que hayan cambiado se informan arriba; no se modifican los archivos del repositorio remoto."
+          echo "Validando formato con dart format --set-exit-if-changed --output=none."
+          if ! dart format --set-exit-if-changed --output=none lib test; then
+            echo "::error::Hay archivos Dart que no cumplen 'dart format'."
+            echo "Diff de formato solo para diagnóstico (no altera el repositorio):"
+            dart format lib test
+            git --no-pager diff -- lib test
+            exit 1
+          fi
+          echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
@@ -185,6 +191,13 @@ jobs:
           printf 'Automated tests: %s\n' "${TESTS_OUTCOME:-not-run}"
           printf 'Debug APK build: %s\n' "${BUILD_OUTCOME:-not-run}"
           printf 'Artifact upload: %s\n' "${UPLOAD_OUTCOME:-not-run}"
+
+          if [[ "${BUILD_OUTCOME:-}" != "success" ]]; then
+            echo "Nota: la compilación del APK debug solo se omite cuando un paso previo no terminó en success (tests: ${TESTS_OUTCOME:-not-run})."
+          fi
+          if [[ "${UPLOAD_OUTCOME:-}" != "success" ]]; then
+            echo "Nota: la subida del artefacto APK solo se omite cuando la compilación del APK no terminó en success (build: ${BUILD_OUTCOME:-not-run})."
+          fi
 
           for outcome in "$ANDROID_SDK_OUTCOME" "$FORMAT_OUTCOME" "$ANALYZE_OUTCOME" "$TESTS_OUTCOME" "$BUILD_OUTCOME" "$UPLOAD_OUTCOME"; do
             if [[ "$outcome" != "success" ]]; then
