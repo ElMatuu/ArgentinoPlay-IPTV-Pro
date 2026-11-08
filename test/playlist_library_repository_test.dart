@@ -101,7 +101,7 @@ void main() {
     await expectLater(
       repository.createPlaylist(
         name: 'Grande',
-        source: 'x' * (5 * 1024 * 1024 + 1),
+        source: List<String>.filled(5 * 1024 * 1024 + 1, 'x').join(),
         channelCount: 1,
       ),
       throwsA(isA<FileSystemException>()),
