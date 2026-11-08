@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
+import 'services/epg_matcher.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
@@ -340,10 +341,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   EpgProgramme? _currentProgramme(TvChannel channel) {
     final guide = _guide;
-    if (guide == null || channel.tvgId.isEmpty) {
+    if (guide == null) {
       return null;
     }
-    return guide.programmeAt(channel.tvgId, DateTime.now());
+    return currentProgrammeForChannel(
+      channel,
+      guide,
+      at: DateTime.now(),
+    );
   }
 
   @override
@@ -353,8 +358,8 @@ class _HomeScreenState extends State<HomeScreen> {
           channel.name.toLowerCase().contains(_query.toLowerCase()) ||
               channel.group.toLowerCase().contains(_query.toLowerCase());
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
-      final inGuide =
-          _tab != 2 || (_guide?.channels.containsKey(channel.tvgId) ?? false);
+      final inGuide = _tab != 2 ||
+          (_guide != null && matchEpgChannel(channel, _guide!) != null);
       return matches && inFavorites && inGuide;
     }).toList();
 
