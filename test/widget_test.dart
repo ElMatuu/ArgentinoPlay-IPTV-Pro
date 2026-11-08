@@ -35,8 +35,7 @@ void main() {
   });
 
   test('M3U parser ignores unsupported schemes and malformed entries', () {
-    const playlist =
-        '#EXTM3U\n#EXTINF:-1,No válido\nfile:///etc/passwd\n'
+    const playlist = '#EXTM3U\n#EXTINF:-1,No válido\nfile:///etc/passwd\n'
         '#EXTINF:-1,Válido\nhttps://example.org/live.m3u8\n';
     final channels = parseM3u(playlist);
 

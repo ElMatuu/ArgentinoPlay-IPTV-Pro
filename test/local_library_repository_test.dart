@@ -8,8 +8,10 @@ void main() {
   late LocalLibraryRepository repository;
 
   setUp(() async {
-    directory = await Directory.systemTemp.createTemp('argentino-library-test-');
-    repository = LocalLibraryRepository(directoryProvider: () async => directory);
+    directory =
+        await Directory.systemTemp.createTemp('argentino-library-test-');
+    repository =
+        LocalLibraryRepository(directoryProvider: () async => directory);
   });
 
   tearDown(() async {
@@ -18,14 +20,17 @@ void main() {
     }
   });
 
-  test('persists playlist and guide source across repository instances', () async {
-    const playlist = '#EXTM3U\n#EXTINF:-1,Demo\nhttps://example.org/live.m3u8\n';
+  test('persists playlist and guide source across repository instances',
+      () async {
+    const playlist =
+        '#EXTM3U\n#EXTINF:-1,Demo\nhttps://example.org/live.m3u8\n';
     const guide = '<tv><channel id="demo"/></tv>';
 
     await repository.savePlaylist(playlist);
     await repository.saveGuide(guide);
 
-    final reopened = LocalLibraryRepository(directoryProvider: () async => directory);
+    final reopened =
+        LocalLibraryRepository(directoryProvider: () async => directory);
     expect(await reopened.loadPlaylist(), playlist);
     expect(await reopened.loadGuide(), guide);
   });
@@ -35,12 +40,14 @@ void main() {
     expect(await repository.loadGuide(), isNull);
   });
 
-  test('rejects oversized content without replacing an existing playlist', () async {
+  test('rejects oversized content without replacing an existing playlist',
+      () async {
     const original = '#EXTM3U\n';
     await repository.savePlaylist(original);
 
     final oversized = 'x' * (LocalLibraryRepository.maxPlaylistBytes + 1);
-    await expectLater(repository.savePlaylist(oversized), throwsA(isA<FileSystemException>()));
+    await expectLater(repository.savePlaylist(oversized),
+        throwsA(isA<FileSystemException>()));
     expect(await repository.loadPlaylist(), original);
   });
 

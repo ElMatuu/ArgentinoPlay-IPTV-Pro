@@ -11,8 +11,7 @@ import 'package:path_provider/path_provider.dart';
 class LocalLibraryRepository {
   LocalLibraryRepository({
     Future<Directory> Function()? directoryProvider,
-  }) : _directoryProvider =
-           directoryProvider ?? getApplicationSupportDirectory;
+  }) : _directoryProvider = directoryProvider ?? getApplicationSupportDirectory;
 
   static const int maxPlaylistBytes = 5 * 1024 * 1024;
   static const int maxGuideBytes = 10 * 1024 * 1024;
@@ -65,9 +64,7 @@ class LocalLibraryRepository {
         await backup.delete();
       }
     } catch (_) {
-      if (hadPrevious &&
-          !await destination.exists() &&
-          await backup.exists()) {
+      if (hadPrevious && !await destination.exists() && await backup.exists()) {
         await backup.rename(destination.path);
       }
       rethrow;
@@ -85,7 +82,8 @@ class LocalLibraryRepository {
     }
     final length = await file.length();
     if (length > maxBytes) {
-      throw const FileSystemException('Stored library item exceeds its size limit.');
+      throw const FileSystemException(
+          'Stored library item exceeds its size limit.');
     }
     return file.readAsString(encoding: utf8);
   }

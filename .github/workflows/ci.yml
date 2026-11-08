@@ -139,25 +139,124 @@ jobs:
           java -version
           echo "Android SDK: ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-not-set}}"
 
-      - name: Format Dart sources in CI workspace
+      - name: Validate Dart formatting (no silent workspace rewrites)
         id: format
         run: |
           set -euo pipefail
-          echo "Aplicando dart format a lib/ y test/ antes del análisis y las pruebas."
+          echo "Validando formato con dart format --set-exit-if-changed --output=none."
+          if dart format --set-exit-if-changed --output=none lib test; then
+            echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
+            exit 0
+          fi
+          echo "Hay archivos Dart que no cumplen 'dart format'."
           dart format lib test
-          echo "Formato aplicado. Los archivos que hayan cambiado se informan arriba; no se modifican los archivos del repositorio remoto."
+          git --no-pager diff -- lib test | sed -e 's/ /·/g' -e 's/	/→/g' > /tmp/format.diff || true
+          size="$(wc -c < /tmp/format.diff)"
+          echo "Diff de formato (espacios marcados con punto medio): ${size} bytes."
+          split -b 850 -d /tmp/format.diff /tmp/fmt_
+          exit 1
+
+      - name: Publish format diff annotations 1-10
+        if: always() && steps.format.outcome == 'failure'
+        run: |
+          count=0
+          for chunk in /tmp/fmt_*; do
+            count=$((count+1))
+            if [[ $count -le 10 ]]; then
+              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
+              echo "::error title=Format diff ${count}::${msg}"
+            fi
+          done
+
+      - name: Publish format diff annotations 11-20
+        if: always() && steps.format.outcome == 'failure'
+        run: |
+          count=0
+          for chunk in /tmp/fmt_*; do
+            count=$((count+1))
+            if [[ $count -ge 11 && $count -le 20 ]]; then
+              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
+              echo "::error title=Format diff ${count}::${msg}"
+            fi
+          done
+
+      - name: Publish format diff annotations 21-30
+        if: always() && steps.format.outcome == 'failure'
+        run: |
+          count=0
+          for chunk in /tmp/fmt_*; do
+            count=$((count+1))
+            if [[ $count -ge 21 && $count -le 30 ]]; then
+              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
+              echo "::error title=Format diff ${count}::${msg}"
+            fi
+          done
+
+      - name: Publish format diff annotations 31-40
+        if: always() && steps.format.outcome == 'failure'
+        run: |
+          count=0
+          for chunk in /tmp/fmt_*; do
+            count=$((count+1))
+            if [[ $count -ge 31 && $count -le 40 ]]; then
+              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
+              echo "::error title=Format diff ${count}::${msg}"
+            fi
+          done
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
+        run: |
+          if flutter analyze --fatal-infos --fatal-warnings > /tmp/analyze.out 2>&1; then
+            cat /tmp/analyze.out
+          else
+            code=$?
+            cat /tmp/analyze.out
+            sed -e 's/%/%25/g' -e 's/\r/%0D/g' /tmp/analyze.out | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/analyze.msg
+            split -b 850 -d /tmp/analyze.msg /tmp/az_
+            count=0
+            for chunk in /tmp/az_*; do
+              count=$((count+1))
+              echo "::error title=Analyze output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Automated tests
         id: tests
-        run: flutter test --reporter expanded
+        run: |
+          if flutter test --reporter expanded > /tmp/test.out 2>&1; then
+            cat /tmp/test.out
+          else
+            code=$?
+            cat /tmp/test.out
+            sed -n '/EXCEPTION/,$p' /tmp/test.out | head -c 8000 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/test.msg
+            split -b 850 -d /tmp/test.msg /tmp/ts_
+            count=0
+            for chunk in /tmp/ts_*; do
+              count=$((count+1))
+              echo "::error title=Test output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Build debug APK (full Gradle diagnostics)
         id: build
-        run: flutter build apk --debug --verbose
+        run: |
+          if flutter build apk --debug > /tmp/build.out 2>&1; then
+            cat /tmp/build.out
+          else
+            code=$?
+            cat /tmp/build.out
+            tail -c 8000 /tmp/build.out | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/build.msg
+            split -b 850 -d /tmp/build.msg /tmp/bu_
+            count=0
+            for chunk in /tmp/bu_*; do
+              count=$((count+1))
+              echo "::error title=Build output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Upload debug APK
         id: upload
@@ -185,6 +284,13 @@ jobs:
           printf 'Automated tests: %s\n' "${TESTS_OUTCOME:-not-run}"
           printf 'Debug APK build: %s\n' "${BUILD_OUTCOME:-not-run}"
           printf 'Artifact upload: %s\n' "${UPLOAD_OUTCOME:-not-run}"
+
+          if [[ "${BUILD_OUTCOME:-}" != "success" ]]; then
+            echo "Nota: la compilación del APK debug solo se omite cuando un paso previo no terminó en success (tests: ${TESTS_OUTCOME:-not-run})."
+          fi
+          if [[ "${UPLOAD_OUTCOME:-}" != "success" ]]; then
+            echo "Nota: la subida del artefacto APK solo se omite cuando la compilación del APK no terminó en success (build: ${BUILD_OUTCOME:-not-run})."
+          fi
 
           for outcome in "$ANDROID_SDK_OUTCOME" "$FORMAT_OUTCOME" "$ANALYZE_OUTCOME" "$TESTS_OUTCOME" "$BUILD_OUTCOME" "$UPLOAD_OUTCOME"; do
             if [[ "$outcome" != "success" ]]; then
