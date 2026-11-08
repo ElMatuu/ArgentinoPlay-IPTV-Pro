@@ -154,7 +154,7 @@ class _AccountScreenState extends State<AccountScreen> {
             if (_auth == null)
               const Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Text(
                     'La conexión con la nube todavía no está configurada en esta compilación. Podés seguir usando el reproductor localmente.',
                     textAlign: TextAlign.center,
