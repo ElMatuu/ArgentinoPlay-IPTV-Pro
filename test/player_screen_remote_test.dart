@@ -1,10 +1,10 @@
+import 'package:argentino_play/services/player_remote_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player/video_player.dart';
 
-/// Simple fake implementation of VideoPlayerController for testing.
-/// This allows testing the remote control logic without platform dependencies.
+/// Fake implementation of VideoPlayerController for testing.
 class FakeVideoPlayerController implements VideoPlayerController {
   bool _isPlaying = false;
   bool _isInitialized = false;
@@ -76,129 +76,72 @@ class FakeVideoPlayerController implements VideoPlayerController {
   void dispose() {}
 }
 
-/// Helper class to test the remote control logic in isolation.
-class TestPlayerRemoteLogic {
-  VideoPlayerController? _controller;
-
-  TestPlayerRemoteLogic(this._controller);
-
-  void togglePlayPause() {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-    if (controller.value.isPlaying) {
-      controller.pause();
-    } else {
-      controller.play();
-    }
-  }
-
-  void play() {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-    controller.play();
-  }
-
-  void pause() {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
-    controller.pause();
-  }
-
-  Map<ShortcutActivator, VoidCallback> remoteShortcuts() {
-    return {
-      SingleActivator(LogicalKeyboardKey.mediaPlayPause): togglePlayPause,
-      SingleActivator(LogicalKeyboardKey.mediaPlay): play,
-      SingleActivator(LogicalKeyboardKey.mediaPause): pause,
-    };
-  }
-}
-
 void main() {
-  group('PlayerScreen remote control logic', () {
+  group('PlayerRemoteController', () {
     late FakeVideoPlayerController fakeController;
-    late TestPlayerRemoteLogic logic;
+    late PlayerRemoteController remoteController;
 
     setUp(() async {
       fakeController = FakeVideoPlayerController();
       await fakeController.initialize();
-      logic = TestPlayerRemoteLogic(fakeController);
+      remoteController = PlayerRemoteController(fakeController);
     });
 
-    test('mediaPlayPause toggles play/pause', () async {
-      // Initially paused
+    test('togglePlayPause toggles play/pause', () async {
       expect(fakeController.value.isPlaying, false);
 
-      // Call togglePlayPause
-      logic.togglePlayPause();
+      remoteController.togglePlayPause();
       expect(fakeController.value.isPlaying, true);
 
-      // Call togglePlayPause again
-      logic.togglePlayPause();
+      remoteController.togglePlayPause();
       expect(fakeController.value.isPlaying, false);
     });
 
-    test('mediaPlay ensures playing state', () async {
-      // Pause first
+    test('play ensures playing state', () async {
       await fakeController.pause();
       expect(fakeController.value.isPlaying, false);
 
-      // Call play
-      logic.play();
+      remoteController.play();
       expect(fakeController.value.isPlaying, true);
     });
 
-    test('mediaPause ensures paused state', () async {
-      // Play first
+    test('pause ensures paused state', () async {
       await fakeController.play();
       expect(fakeController.value.isPlaying, true);
 
-      // Call pause
-      logic.pause();
+      remoteController.pause();
       expect(fakeController.value.isPlaying, false);
     });
 
-    test('mediaPause on already paused video stays paused', () async {
-      // Ensure paused
+    test('pause on already paused video stays paused', () async {
       await fakeController.pause();
       expect(fakeController.value.isPlaying, false);
 
-      // Call pause again
-      logic.pause();
+      remoteController.pause();
       expect(fakeController.value.isPlaying, false);
     });
 
-    test('mediaPlay on already playing video stays playing', () async {
-      // Ensure playing
+    test('play on already playing video stays playing', () async {
       await fakeController.play();
       expect(fakeController.value.isPlaying, true);
 
-      // Call play again
-      logic.play();
+      remoteController.play();
       expect(fakeController.value.isPlaying, true);
     });
 
     test('remoteShortcuts returns correct bindings', () {
-      final shortcuts = logic.remoteShortcuts();
+      final shortcuts = remoteController.remoteShortcuts();
       expect(shortcuts.length, 3);
       expect(
-        shortcuts
-            .containsKey(SingleActivator(LogicalKeyboardKey.mediaPlayPause)),
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPlayPause)),
         true,
       );
       expect(
-        shortcuts
-            .containsKey(SingleActivator(LogicalKeyboardKey.mediaPlay)),
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPlay)),
         true,
       );
       expect(
-        shortcuts
-            .containsKey(SingleActivator(LogicalKeyboardKey.mediaPause)),
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPause)),
         true,
       );
     });

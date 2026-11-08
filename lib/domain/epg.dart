@@ -103,6 +103,7 @@ String normalizeEpgName(String value) {
       .replaceAll('ä', 'a')
       .replaceAll('è', 'e')
       .replaceAll('ê', 'e')
+      .replaceAll('ë', 'e')    // ë
       .replaceAll('î', 'i')
       .replaceAll('ï', 'i')
       .replaceAll('ò', 'o')
