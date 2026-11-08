@@ -8,6 +8,8 @@ import 'package:video_player/video_player.dart';
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
 import 'services/local_library_repository.dart';
+import 'services/playlist_library_repository.dart';
+import 'services/playlist_manager_screen.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -19,10 +21,15 @@ export 'services/xmltv_parser.dart';
 void main() => runApp(ArgentinoPlayApp());
 
 class ArgentinoPlayApp extends StatelessWidget {
-  ArgentinoPlayApp({super.key, LocalLibraryRepository? libraryRepository})
-      : libraryRepository = libraryRepository ?? LocalLibraryRepository();
+  ArgentinoPlayApp({
+    super.key,
+    LocalLibraryRepository? libraryRepository,
+    PlaylistLibraryRepository? playlistRepository,
+  })  : libraryRepository = libraryRepository ?? LocalLibraryRepository(),
+        playlistRepository = playlistRepository ?? PlaylistLibraryRepository();
 
   final LocalLibraryRepository libraryRepository;
+  final PlaylistLibraryRepository playlistRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -36,15 +43,23 @@ class ArgentinoPlayApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: HomeScreen(libraryRepository: libraryRepository),
+      home: HomeScreen(
+        libraryRepository: libraryRepository,
+        playlistRepository: playlistRepository,
+      ),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.libraryRepository});
+  const HomeScreen({
+    super.key,
+    required this.libraryRepository,
+    required this.playlistRepository,
+  });
 
   final LocalLibraryRepository libraryRepository;
+  final PlaylistLibraryRepository playlistRepository;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -58,6 +73,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _importing = false;
   String _query = '';
   int _tab = 0;
+  String? _activePlaylistId;
+  String? _activePlaylistName;
 
   @override
   void initState() {
@@ -70,12 +87,39 @@ class _HomeScreenState extends State<HomeScreen> {
     List<TvChannel> channels = [];
     XmltvGuide? guide;
     try {
-      final playlist = await widget.libraryRepository.loadPlaylist();
-      if (playlist != null) {
-        channels = parseM3u(playlist);
+      final playlists = await widget.playlistRepository.listPlaylists();
+      final activeId = await widget.playlistRepository.activePlaylistId();
+      PlaylistRecord? selected;
+      for (final item in playlists) {
+        if (item.id == activeId) {
+          selected = item;
+          break;
+        }
+      }
+      selected ??= playlists.isEmpty ? null : playlists.first;
+      if (selected != null) {
+        final source =
+            await widget.playlistRepository.loadPlaylist(selected.id);
+        if (source != null) {
+          channels = parseM3u(source);
+          _activePlaylistId = selected.id;
+          _activePlaylistName = selected.name;
+          await widget.playlistRepository.setActivePlaylistId(selected.id);
+        }
+      } else {
+        final legacyPlaylist = await widget.libraryRepository.loadPlaylist();
+        if (legacyPlaylist != null) {
+          channels = parseM3u(legacyPlaylist);
+        }
       }
     } catch (_) {
       // Keep the rest of the library usable if a stored playlist is damaged.
+      try {
+        final legacyPlaylist = await widget.libraryRepository.loadPlaylist();
+        if (legacyPlaylist != null) channels = parseM3u(legacyPlaylist);
+      } catch (_) {
+        // A damaged legacy playlist must not prevent the EPG from loading.
+      }
     }
     try {
       final source = await widget.libraryRepository.loadGuide();
@@ -159,16 +203,669 @@ class _HomeScreenState extends State<HomeScreen> {
           'No se encontraron canales HTTP/HTTPS válidos.',
         );
       }
-      await widget.libraryRepository.savePlaylist(source);
+      final suggestedName = result.files.single.name
+          .replaceFirst(RegExp(r'\\.(m3u8?)
+    } on FormatException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('No se pudo procesar la lista seleccionada.');
+    } finally {
+      if (mounted) {
+        setState(() => _importing = false);
+      }
+    }
+  }
+
+  Future<String?> _requestPlaylistName(String suggestedName) async {
+    final controller = TextEditingController(text: suggestedName);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Guardar nueva lista'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 80,
+          decoration: const InputDecoration(labelText: 'Nombre de la lista'),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return name;
+  }
+
+  Future<void> _openPlaylistManager() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PlaylistManagerScreen(
+          repository: widget.playlistRepository,
+          activePlaylistId: _activePlaylistId,
+          onSelected: (record, source) {
+            setState(() {
+              _channels = parseM3u(source);
+              _activePlaylistId = record.id;
+              _activePlaylistName = record.name;
+              _tab = 0;
+            });
+          },
+        ),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _importEpg() async {
+    if (_importing) {
+      return;
+    }
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xml', 'xmltv'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final bytes = result.files.single.bytes;
+    if (bytes == null) {
+      _showMessage('No se pudo acceder al contenido del archivo EPG.');
+      return;
+    }
+    if (bytes.lengthInBytes > 10 * 1024 * 1024) {
+      _showMessage('La guía supera el límite de importación de 10 MB.');
+      return;
+    }
+
+    setState(() => _importing = true);
+    try {
+      final source = utf8.decode(bytes);
+      final guide = parseXmltv(source);
+      if (guide.channels.isEmpty || guide.programmes.isEmpty) {
+        throw const FormatException(
+          'El XMLTV no contiene canales y programas utilizables.',
+        );
+      }
+      await widget.libraryRepository.saveGuide(source);
       if (!mounted) {
         return;
       }
+      setState(() => _guide = guide);
+      _showMessage(
+        'Guía importada: ${guide.channels.length} canales y '
+        '${guide.programmes.length} programas.',
+      );
+    } on FormatException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('No se pudo procesar el archivo XMLTV.');
+    } finally {
+      if (mounted) {
+        setState(() => _importing = false);
+      }
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  EpgProgramme? _currentProgramme(TvChannel channel) {
+    final guide = _guide;
+    if (guide == null || channel.tvgId.isEmpty) {
+      return null;
+    }
+    return guide.programmeAt(channel.tvgId, DateTime.now());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = _channels.where((channel) {
+      final matches = channel.name.toLowerCase().contains(_query.toLowerCase()) ||
+          channel.group.toLowerCase().contains(_query.toLowerCase());
+      final inFavorites = _tab != 1 || _favorites.contains(channel.url);
+      final inGuide = _tab != 2 ||
+          (_guide?.channels.containsKey(channel.tvgId) ?? false);
+      return matches && inFavorites && inGuide;
+    }).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          '🇦🇷 ArgentinoPlay',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Mis listas',
+            onPressed: _loading ? null : _openPlaylistManager,
+            icon: const Icon(Icons.library_music),
+          ),
+          IconButton(
+            tooltip: 'Importar lista M3U/M3U8',
+            onPressed: _importing ? null : _importPlaylist,
+            icon: const Icon(Icons.playlist_add),
+          ),
+          IconButton(
+            tooltip: 'Importar guía XMLTV',
+            onPressed: _importing ? null : _importEpg,
+            icon: const Icon(Icons.calendar_month),
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (_activePlaylistName != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Chip(
+                        avatar: const Icon(Icons.playlist_play, size: 18),
+                        label: Text('Lista: $_activePlaylistName'),
+                      ),
+                    ),
+                  ),
+                if (_importing) const LinearProgressIndicator(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Buscar canales...',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.live_tv,
+                          label: 'Canales',
+                          value: '${_channels.length}',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.favorite,
+                          label: 'Favoritos',
+                          value: '${_favorites.length}',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.event,
+                          label: 'EPG',
+                          value: '${_guide?.programmes.length ?? 0}',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: visible.isEmpty
+                      ? _EmptyState(
+                          onImport: _tab == 2 ? _importEpg : _importPlaylist,
+                          favoritesOnly: _tab == 1,
+                          guideOnly: _tab == 2,
+                        )
+                      : ListView.builder(
+                          itemCount: visible.length,
+                          itemBuilder: (context, index) {
+                            final channel = visible[index];
+                            final programme = _currentProgramme(channel);
+                            final isFavorite =
+                                _favorites.contains(channel.url);
+                            return ListTile(
+                              leading: const CircleAvatar(
+                                child: Icon(Icons.live_tv),
+                              ),
+                              title: Text(
+                                channel.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                programme == null
+                                    ? channel.group
+                                    : '${channel.group} · Ahora: ${programme.title}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: IconButton(
+                                tooltip: isFavorite
+                                    ? 'Quitar de favoritos'
+                                    : 'Agregar a favoritos',
+                                icon: Icon(
+                                  isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: isFavorite ? Colors.redAccent : null,
+                                ),
+                                onPressed: () => _toggleFavorite(channel),
+                              ),
+                              onTap: () {
+                                if (_tab == 2 && _guide != null) {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => EpgScreen(
+                                        channel: channel,
+                                        guide: _guide!,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          PlayerScreen(channel: channel),
+                                    ),
+                                  );
+                                }
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (value) => setState(() => _tab = value),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.live_tv),
+            label: 'Canales',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite),
+            label: 'Favoritos',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month),
+            label: 'Programación',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(icon, size: 22),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.onImport,
+    required this.favoritesOnly,
+    required this.guideOnly,
+  });
+
+  final VoidCallback onImport;
+  final bool favoritesOnly;
+  final bool guideOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = favoritesOnly
+        ? 'Todavía no hay favoritos'
+        : guideOnly
+            ? 'Todavía no hay programación'
+            : 'Tu catálogo empieza acá';
+    final description = favoritesOnly
+        ? 'Marcá canales con el corazón para encontrarlos acá.'
+        : guideOnly
+            ? 'Importá una guía XMLTV y vinculala mediante el identificador tvg-id de cada canal.'
+            : 'Importá una lista M3U/M3U8 de fuentes propias, públicas autorizadas o licenciadas.';
+    final icon = favoritesOnly
+        ? Icons.favorite_border
+        : guideOnly
+            ? Icons.event
+            : Icons.playlist_play;
+    final buttonLabel = guideOnly ? 'Importar guía XMLTV' : 'Importar lista';
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 64,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(description, textAlign: TextAlign.center),
+            if (!favoritesOnly) ...[
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: onImport,
+                icon: const Icon(Icons.upload_file),
+                label: Text(buttonLabel),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EpgScreen extends StatelessWidget {
+  const EpgScreen({
+    super.key,
+    required this.channel,
+    required this.guide,
+  });
+
+  final TvChannel channel;
+  final XmltvGuide guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final programmes = guide.programmesFor(channel.tvgId);
+    return Scaffold(
+      appBar: AppBar(title: Text('Programación · ${channel.name}')),
+      body: programmes.isEmpty
+          ? const Center(
+              child: Text('No hay programas disponibles para este canal.'),
+            )
+          : ListView.separated(
+              itemCount: programmes.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final programme = programmes[index];
+                final now = programme.isOnAirAt(DateTime.now());
+                return ListTile(
+                  leading: Icon(
+                    now ? Icons.play_circle_fill : Icons.schedule,
+                    color: now
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
+                  title: Text(programme.title),
+                  subtitle: Text(
+                    '${_formatTime(programme.start)}–'
+                    '${_formatTime(programme.end)}'
+                    '${programme.description.isEmpty ? '' : '\n${programme.description}'}',
+                  ),
+                  isThreeLine: programme.description.isNotEmpty,
+                );
+              },
+            ),
+    );
+  }
+}
+
+String _formatTime(DateTime timestamp) {
+  final local = timestamp.toLocal();
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
+}
+
+class PlayerScreen extends StatefulWidget {
+  const PlayerScreen({super.key, required this.channel});
+
+  final TvChannel channel;
+
+  @override
+  State<PlayerScreen> createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends State<PlayerScreen>
+    with WidgetsBindingObserver {
+  VideoPlayerController? _controller;
+  String? _error;
+  bool _busy = true;
+  bool _wasPlayingBeforePause = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _start();
+  }
+
+  Future<void> _start() async {
+    final previous = _controller;
+    previous?.removeListener(_onPlayerChanged);
+    await previous?.dispose();
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.channel.url),
+      );
+      _controller = controller;
+      controller.addListener(_onPlayerChanged);
+      await controller.initialize();
+      if (!mounted) {
+        return;
+      }
+      await controller.play();
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error =
+              'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
+        });
+      }
+    }
+  }
+
+  void _onPlayerChanged() {
+    final controller = _controller;
+    if (!mounted || controller == null) {
+      return;
+    }
+    if (controller.value.hasError && _error == null) {
+      setState(() {
+        _busy = false;
+        _error =
+            'La fuente rechazó la reproducción o entregó un formato no compatible.';
+      });
+      return;
+    }
+    setState(() {});
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _wasPlayingBeforePause = controller.value.isPlaying;
+      controller.pause();
+    } else if (state == AppLifecycleState.resumed &&
+        _wasPlayingBeforePause) {
+      controller.play();
+      _wasPlayingBeforePause = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.removeListener(_onPlayerChanged);
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    final initialized = controller?.value.isInitialized ?? false;
+    final aspectRatio = initialized && controller!.value.aspectRatio > 0
+        ? controller.value.aspectRatio
+        : 16 / 9;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.channel.name)),
+      body: Center(
+        child: _busy
+            ? const CircularProgressIndicator()
+            : _error != null
+                ? Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48),
+                        const SizedBox(height: 12),
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: _start,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                : controller == null || !initialized
+                    ? const Text('Preparando reproductor...')
+                    : AspectRatio(
+                        aspectRatio: aspectRatio,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            VideoPlayer(controller),
+                            VideoProgressIndicator(
+                              controller,
+                              allowScrubbing: true,
+                            ),
+                            Align(
+                              alignment: Alignment.center,
+                              child: IconButton.filledTonal(
+                                iconSize: 42,
+                                onPressed: () {
+                                  if (controller.value.isPlaying) {
+                                    controller.pause();
+                                  } else {
+                                    controller.play();
+                                  }
+                                },
+                                icon: Icon(
+                                  controller.value.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
+                                ),
+                              ),
+                            ),
+                            if (controller.value.isBuffering)
+                              const Align(
+                                alignment: Alignment.topCenter,
+                                child: LinearProgressIndicator(),
+                              ),
+                          ],
+                        ),
+                      ),
+      ),
+    );
+  }
+}
+, caseSensitive: false), '')
+          .trim();
+      final name = await _requestPlaylistName(suggestedName);
+      if (name == null || !mounted) return;
+      final record = await widget.playlistRepository.createPlaylist(
+        name: name,
+        source: source,
+        channelCount: parsed.length,
+      );
+      await widget.playlistRepository.setActivePlaylistId(record.id);
+      if (!mounted) return;
       setState(() {
         _channels = parsed;
+        _activePlaylistId = record.id;
+        _activePlaylistName = record.name;
         _tab = 0;
       });
       _showMessage(
-        'Se importaron ${parsed.length} canales. Usá únicamente fuentes autorizadas.',
+        'Se guardó "${record.name}" con ${parsed.length} canales. Usá únicamente fuentes autorizadas.',
       );
     } on FormatException catch (error) {
       _showMessage(error.message);
