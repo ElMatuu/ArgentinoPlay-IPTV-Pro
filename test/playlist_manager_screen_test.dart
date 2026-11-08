@@ -114,7 +114,7 @@ void main() {
   testWidgets('renames a playlist from its actions menu', (tester) async {
     await openManager(tester, onSelected: (_, __) {});
 
-    await tester.tap(find.byTooltip('Acciones de Noticias'));
+    await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Renombrar'));
     await tester.pumpAndSettle();
@@ -134,7 +134,7 @@ void main() {
       (tester) async {
     await openManager(tester, onSelected: (_, __) {});
 
-    await tester.tap(find.byTooltip('Acciones de Noticias'));
+    await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Eliminar'));
     await tester.pumpAndSettle();
