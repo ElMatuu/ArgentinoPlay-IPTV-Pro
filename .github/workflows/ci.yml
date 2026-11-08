@@ -150,9 +150,9 @@ jobs:
           fi
           echo "Hay archivos Dart que no cumplen 'dart format'."
           dart format lib test
-          git --no-pager diff -- lib test > /tmp/format.diff || true
+          git --no-pager diff -- lib test | sed -e 's/ /\u00b7/g' -e 's/\t/\u2192/g' > /tmp/format.diff || true
           size="$(wc -c < /tmp/format.diff)"
-          echo "Diff de formato: ${size} bytes (se publica como anotaciones)."
+          echo "Diff de formato (espacios marcados con punto medio): ${size} bytes."
           split -b 850 -d /tmp/format.diff /tmp/fmt_
           exit 1
 
@@ -203,7 +203,6 @@ jobs:
               echo "::error title=Format diff ${count}::${msg}"
             fi
           done
-          echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
