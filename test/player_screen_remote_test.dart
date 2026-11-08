@@ -135,13 +135,11 @@ void main() {
         true,
       );
       expect(
-        shortcuts
-            .containsKey(SingleActivator(LogicalKeyboardKey.mediaPlay)),
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPlay)),
         true,
       );
       expect(
-        shortcuts
-            .containsKey(SingleActivator(LogicalKeyboardKey.mediaPause)),
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPause)),
         true,
       );
     });
