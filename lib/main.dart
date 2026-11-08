@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/supabase_bootstrap.dart';
+import 'services/account_screen.dart';
 import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
@@ -392,6 +393,17 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Mi cuenta',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AccountScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.account_circle_outlined),
+          ),
           IconButton(
             tooltip: 'Mis listas',
             onPressed: _loading ? null : _openPlaylistManager,
