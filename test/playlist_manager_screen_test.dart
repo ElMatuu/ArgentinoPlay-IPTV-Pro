@@ -1,30 +1,73 @@
-import 'dart:io';
-
 import 'package:argentino_play/services/playlist_library_repository.dart';
 import 'package:argentino_play/services/playlist_manager_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-void main() {
-  late Directory directory;
-  late PlaylistLibraryRepository repository;
-
-  setUp(() async {
-    directory = await Directory.systemTemp.createTemp('playlist-manager-');
-    repository =
-        PlaylistLibraryRepository(directoryProvider: () async => directory);
-    await repository.createPlaylist(
-      name: 'Noticias',
-      source: '#EXTM3U\n#EXTINF:-1,Canal Noticias\nhttps://example.org/news.m3u8\n',
-      channelCount: 1,
+class _MemoryPlaylistRepository extends PlaylistLibraryRepository {
+  final List<PlaylistRecord> records = [
+    PlaylistRecord(
       id: 'news',
-    );
-  });
+      name: 'Noticias',
+      channelCount: 1,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    ),
+  ];
 
-  tearDown(() async {
-    if (await directory.exists()) {
-      await directory.delete(recursive: true);
+  final Map<String, String> sources = {
+    'news':
+        '#EXTM3U\n#EXTINF:-1,Canal Noticias\nhttps://example.org/news.m3u8\n',
+  };
+
+  String? activeId;
+
+  @override
+  Future<List<PlaylistRecord>> listPlaylists() async =>
+      List<PlaylistRecord>.unmodifiable(records);
+
+  @override
+  Future<String?> loadPlaylist(String id) async => sources[id];
+
+  @override
+  Future<PlaylistRecord> renamePlaylist(String id, String name) async {
+    final index = records.indexWhere((record) => record.id == id);
+    if (index < 0) throw const FormatException('Playlist not found.');
+    final old = records[index];
+    final updated = PlaylistRecord(
+      id: old.id,
+      name: name.trim(),
+      channelCount: old.channelCount,
+      createdAt: old.createdAt,
+      updatedAt: DateTime.utc(2026, 1, 2),
+    );
+    records[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<void> deletePlaylist(String id) async {
+    records.removeWhere((record) => record.id == id);
+    sources.remove(id);
+    if (activeId == id) activeId = null;
+  }
+
+  @override
+  Future<String?> activePlaylistId() async => activeId;
+
+  @override
+  Future<void> setActivePlaylistId(String? id) async {
+    if (id != null && !records.any((record) => record.id == id)) {
+      throw const FormatException('Cannot activate an unknown playlist.');
     }
+    activeId = id;
+  }
+}
+
+void main() {
+  late _MemoryPlaylistRepository repository;
+
+  setUp(() {
+    repository = _MemoryPlaylistRepository();
   });
 
   Future<void> openManager(
@@ -54,17 +97,9 @@ void main() {
       ),
     );
     await tester.tap(find.text('Abrir listas'));
-    // The screen loads its manifest from disk. Let real file I/O complete
-    // outside the widget test's fake-async clock before settling animations.
+    // The in-memory repository resolves deterministically; no filesystem I/O
+    // or indeterminate loading animation is needed in these widget tests.
     await tester.pump();
-    final persisted = await tester.runAsync(repository.listPlaylists);
-    expect(persisted, hasLength(1));
-    // The screen displays an indeterminate CircularProgressIndicator while
-    // the manifest is loading. pumpAndSettle can never settle that animation,
-    // even after the file Future completes, so advance a bounded number of
-    // frames and let the following expectations verify that loading finished.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
     await tester.pump();
   }
 
@@ -89,7 +124,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Noticias nacionales'), findsOneWidget);
-    expect(await repository.loadPlaylist('news'), contains('Canal Noticias'));
+    expect(
+      await repository.loadPlaylist('news'),
+      contains('Canal Noticias'),
+    );
   });
 
   testWidgets('requires confirmation before deleting a playlist',
@@ -101,8 +139,12 @@ void main() {
     await tester.tap(find.text('Eliminar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('¿Querés eliminar "Noticias"? Esta acción no se puede deshacer.'),
-        findsOneWidget);
+    expect(
+      find.text(
+        '¿Querés eliminar "Noticias"? Esta acción no se puede deshacer.',
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
     await tester.pumpAndSettle();
 
