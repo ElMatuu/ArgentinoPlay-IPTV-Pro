@@ -48,11 +48,21 @@ class EpgProgrammeSearch {
 String _normalize(String value) {
   var normalized = value.toLowerCase();
   const replacements = <String, String>{
-    'á': 'a', 'à': 'a', 'ä': 'a',
-    'é': 'e', 'è': 'e', 'ë': 'e',
-    'í': 'i', 'ì': 'i', 'ï': 'i',
-    'ó': 'o', 'ò': 'o', 'ö': 'o',
-    'ú': 'u', 'ù': 'u', 'ü': 'u',
+    'á': 'a',
+    'à': 'a',
+    'ä': 'a',
+    'é': 'e',
+    'è': 'e',
+    'ë': 'e',
+    'í': 'i',
+    'ì': 'i',
+    'ï': 'i',
+    'ó': 'o',
+    'ò': 'o',
+    'ö': 'o',
+    'ú': 'u',
+    'ù': 'u',
+    'ü': 'u',
     'ñ': 'n',
   };
   replacements.forEach((source, replacement) {
