@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
@@ -727,7 +726,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void initState() {
     super.initState();
-    _remoteController = PlayerRemoteController(_controller);
+    _remoteController = PlayerRemoteController.fromVideoPlayer(_controller);
     WidgetsBinding.instance.addObserver(this);
     _start();
   }
@@ -750,7 +749,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         Uri.parse(widget.channel.url),
       );
       _controller = controller;
-      _remoteController = PlayerRemoteController(controller);
+      _remoteController = PlayerRemoteController.fromVideoPlayer(controller);
       controller.addListener(_onPlayerChanged);
       await controller.initialize();
       if (!mounted) {
