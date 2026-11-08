@@ -13,6 +13,7 @@ import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
 import 'services/player_seek.dart';
+import 'services/player_remote_action.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -789,27 +790,23 @@ class _PlayerScreenState extends State<PlayerScreen>
       return KeyEventResult.ignored;
     }
 
-    switch (event.logicalKey) {
-      case LogicalKeyboardKey.mediaPlayPause:
-      case LogicalKeyboardKey.select:
-      case LogicalKeyboardKey.enter:
-      case LogicalKeyboardKey.numpadEnter:
-      case LogicalKeyboardKey.space:
+    switch (playerRemoteActionForKey(event.logicalKey)) {
+      case PlayerRemoteAction.toggle:
         _togglePlayback(controller);
         return KeyEventResult.handled;
-      case LogicalKeyboardKey.mediaPlay:
+      case PlayerRemoteAction.play:
         controller.play();
         return KeyEventResult.handled;
-      case LogicalKeyboardKey.mediaPause:
+      case PlayerRemoteAction.pause:
         controller.pause();
         return KeyEventResult.handled;
-      case LogicalKeyboardKey.arrowLeft:
+      case PlayerRemoteAction.seekBackward:
         _seekBy(controller, const Duration(seconds: -10));
         return KeyEventResult.handled;
-      case LogicalKeyboardKey.arrowRight:
+      case PlayerRemoteAction.seekForward:
         _seekBy(controller, const Duration(seconds: 10));
         return KeyEventResult.handled;
-      default:
+      case null:
         return KeyEventResult.ignored;
     }
   }
