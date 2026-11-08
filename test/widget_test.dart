@@ -1,7 +1,16 @@
 import 'package:argentino_play/main.dart';
 import 'package:argentino_play/services/local_library_repository.dart';
+import 'package:argentino_play/services/playlist_library_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class _EmptyPlaylistRepository extends PlaylistLibraryRepository {
+  @override
+  Future<List<PlaylistRecord>> listPlaylists() async => [];
+
+  @override
+  Future<String?> activePlaylistId() async => null;
+}
 
 class _EmptyLibraryRepository extends LocalLibraryRepository {
   @override
@@ -38,7 +47,10 @@ void main() {
   testWidgets('home screen shows playlist import empty state', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
-      ArgentinoPlayApp(libraryRepository: _EmptyLibraryRepository()),
+      ArgentinoPlayApp(
+        libraryRepository: _EmptyLibraryRepository(),
+        playlistRepository: _EmptyPlaylistRepository(),
+      ),
     );
 
     // Do not use pumpAndSettle here: indeterminate progress indicators can
