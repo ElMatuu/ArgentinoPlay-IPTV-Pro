@@ -42,8 +42,14 @@ void main() {
   group('XmltvGuide.resolveChannelId', () {
     final guide = XmltvGuide(
       channels: {
-        const EpgChannel(id: 'canal-a.ar', displayName: 'Canal A'),
-        const EpgChannel(id: 'radio-1', displayName: 'Radio del Espectáculo!'),
+        'canal-a.ar': const EpgChannel(
+          id: 'canal-a.ar',
+          displayName: 'Canal A',
+        ),
+        'radio-1': const EpgChannel(
+          id: 'radio-1',
+          displayName: 'Radio del Espectáculo!',
+        ),
       },
       programmes: [
         EpgProgramme(
