@@ -665,9 +665,8 @@ class EpgScreen extends StatelessWidget {
       tvgId: channel.tvgId,
       channelName: channel.name,
     );
-    final programmes = guideId == null
-        ? const <EpgProgramme>[]
-        : guide.programmesFor(guideId);
+    final programmes =
+        guideId == null ? const <EpgProgramme>[] : guide.programmesFor(guideId);
     return Scaffold(
       appBar: AppBar(title: Text('Programación · ${channel.name}')),
       body: programmes.isEmpty

@@ -86,7 +86,8 @@ void main() {
     test('programmeAt works with the resolved id', () {
       final id = guide.resolveChannelId(tvgId: '', channelName: 'Canal A');
       expect(id, 'canal-a.ar');
-      final programme = guide.programmeAt(id!, DateTime.utc(2026, 1, 1, 12, 30));
+      final programme =
+          guide.programmeAt(id!, DateTime.utc(2026, 1, 1, 12, 30));
       expect(programme?.title, 'Noticias');
     });
   });
