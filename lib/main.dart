@@ -1,28 +1,45 @@
 import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
+import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
 import 'services/m3u_parser.dart';
+import 'services/xmltv_parser.dart';
 
+export 'domain/epg.dart';
 export 'domain/tv_channel.dart';
 export 'services/m3u_parser.dart';
+export 'services/xmltv_parser.dart';
+
+void main() => runApp(const ArgentinoPlayApp());
 
 class ArgentinoPlayApp extends StatelessWidget {
   const ArgentinoPlayApp({super.key});
+
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'ArgentinoPlay IPTV Pro',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF16A085), brightness: Brightness.dark), useMaterial3: true),
-    home: const HomeScreen(),
-  );
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'ArgentinoPlay IPTV Pro',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF16A085),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const HomeScreen(),
+    );
+  }
 }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -30,12 +47,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<TvChannel> _channels = [];
   Set<String> _favorites = {};
+  XmltvGuide? _guide;
   bool _loading = true;
+  bool _importing = false;
   String _query = '';
   int _tab = 0;
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -49,130 +71,522 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _toggleFavorite(TvChannel channel) async {
+    final wasFavorite = _favorites.contains(channel.url);
     setState(() {
-      if (!_favorites.add(channel.url)) {
+      if (wasFavorite) {
         _favorites.remove(channel.url);
+      } else {
+        _favorites.add(channel.url);
       }
     });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('favorites', _favorites.toList());
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('favorites', _favorites.toList());
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (wasFavorite) {
+          _favorites.add(channel.url);
+        } else {
+          _favorites.remove(channel.url);
+        }
+      });
+      _showMessage('No se pudo guardar el cambio de favoritos.');
+    }
   }
 
   Future<void> _importPlaylist() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['m3u', 'm3u8'], withData: true);
-    if (result == null || result.files.single.bytes == null) {
+    if (_importing) {
       return;
     }
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['m3u', 'm3u8'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final bytes = result.files.single.bytes;
+    if (bytes == null) {
+      _showMessage('No se pudo acceder al contenido del archivo.');
+      return;
+    }
+    if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+      _showMessage('La lista supera el límite de importación de 5 MB.');
+      return;
+    }
+
+    setState(() => _importing = true);
     try {
-      final text = utf8.decode(result.files.single.bytes!);
-      final parsed = parseM3u(text);
+      final source = utf8.decode(bytes);
+      final parsed = parseM3u(source);
       if (parsed.isEmpty) {
-        throw const FormatException('No se encontraron canales HTTP/HTTPS válidos.');
+        throw const FormatException(
+          'No se encontraron canales HTTP/HTTPS válidos.',
+        );
       }
-      if (!mounted) return;
-      setState(() => _channels = parsed);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Se importaron ${parsed.length} canales. Verificá que tengas autorización para reproducir sus fuentes.')));
-    } on FormatException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (!mounted) {
+        return;
       }
+      setState(() {
+        _channels = parsed;
+        _tab = 0;
+      });
+      _showMessage(
+        'Se importaron ${parsed.length} canales. Usá únicamente fuentes autorizadas.',
+      );
+    } on FormatException catch (error) {
+      _showMessage(error.message);
     } catch (_) {
+      _showMessage('No se pudo procesar la lista seleccionada.');
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo leer la lista seleccionada.')));
+        setState(() => _importing = false);
       }
     }
+  }
+
+  Future<void> _importEpg() async {
+    if (_importing) {
+      return;
+    }
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xml', 'xmltv'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final bytes = result.files.single.bytes;
+    if (bytes == null) {
+      _showMessage('No se pudo acceder al contenido del archivo EPG.');
+      return;
+    }
+    if (bytes.lengthInBytes > 10 * 1024 * 1024) {
+      _showMessage('La guía supera el límite de importación de 10 MB.');
+      return;
+    }
+
+    setState(() => _importing = true);
+    try {
+      final source = utf8.decode(bytes);
+      final guide = parseXmltv(source);
+      if (guide.channels.isEmpty || guide.programmes.isEmpty) {
+        throw const FormatException(
+          'El XMLTV no contiene canales y programas utilizables.',
+        );
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() => _guide = guide);
+      _showMessage(
+        'Guía importada: ${guide.channels.length} canales y '
+        '${guide.programmes.length} programas.',
+      );
+    } on FormatException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('No se pudo procesar el archivo XMLTV.');
+    } finally {
+      if (mounted) {
+        setState(() => _importing = false);
+      }
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  EpgProgramme? _currentProgramme(TvChannel channel) {
+    final guide = _guide;
+    if (guide == null || channel.tvgId.isEmpty) {
+      return null;
+    }
+    return guide.programmeAt(channel.tvgId, DateTime.now());
   }
 
   @override
   Widget build(BuildContext context) {
-    final visible = _channels.where((c) {
-      final matches = c.name.toLowerCase().contains(_query.toLowerCase()) || c.group.toLowerCase().contains(_query.toLowerCase());
-      return matches && (_tab != 1 || _favorites.contains(c.url));
+    final visible = _channels.where((channel) {
+      final matches = channel.name.toLowerCase().contains(_query.toLowerCase()) ||
+          channel.group.toLowerCase().contains(_query.toLowerCase());
+      final inFavorites = _tab != 1 || _favorites.contains(channel.url);
+      final inGuide = _tab != 2 ||
+          (_guide?.channels.containsKey(channel.tvgId) ?? false);
+      return matches && inFavorites && inGuide;
     }).toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('🇦🇷 ArgentinoPlay', style: TextStyle(fontWeight: FontWeight.bold)), actions: [
-        IconButton(tooltip: 'Importar lista M3U/M3U8', onPressed: _importPlaylist, icon: const Icon(Icons.playlist_add)),
-      ]),
-      body: _loading ? const Center(child: CircularProgressIndicator()) : Column(children: [
-        Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 12), child: TextField(
-          decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar canales...', border: OutlineInputBorder()),
-          onChanged: (v) => setState(() => _query = v),
-        )),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: [
-          Expanded(child: _InfoTile(icon: Icons.live_tv, label: 'Canales', value: '${_channels.length}')),
-          const SizedBox(width: 10),
-          Expanded(child: _InfoTile(icon: Icons.favorite, label: 'Favoritos', value: '${_favorites.length}')),
-        ])),
-        const SizedBox(height: 12),
-        Expanded(child: visible.isEmpty
-          ? _EmptyState(onImport: _importPlaylist, favoritesOnly: _tab == 1)
-          : ListView.builder(itemCount: visible.length, itemBuilder: (context, index) {
-              final channel = visible[index];
-              return ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.live_tv)),
-                title: Text(channel.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text(channel.group),
-                trailing: IconButton(
-                  tooltip: _favorites.contains(channel.url) ? 'Quitar de favoritos' : 'Agregar a favoritos',
-                  icon: Icon(_favorites.contains(channel.url) ? Icons.favorite : Icons.favorite_border, color: _favorites.contains(channel.url) ? Colors.redAccent : null),
-                  onPressed: () => _toggleFavorite(channel),
+      appBar: AppBar(
+        title: const Text(
+          '🇦🇷 ArgentinoPlay',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Importar lista M3U/M3U8',
+            onPressed: _importing ? null : _importPlaylist,
+            icon: const Icon(Icons.playlist_add),
+          ),
+          IconButton(
+            tooltip: 'Importar guía XMLTV',
+            onPressed: _importing ? null : _importEpg,
+            icon: const Icon(Icons.calendar_month),
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (_importing) const LinearProgressIndicator(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Buscar canales...',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
                 ),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlayerScreen(channel: channel))),
-              );
-            })),
-      ]),
-      bottomNavigationBar: NavigationBar(selectedIndex: _tab, onDestinationSelected: (v) => setState(() => _tab = v), destinations: const [
-        NavigationDestination(icon: Icon(Icons.live_tv), label: 'Canales'),
-        NavigationDestination(icon: Icon(Icons.favorite), label: 'Favoritos'),
-      ]),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.live_tv,
+                          label: 'Canales',
+                          value: '${_channels.length}',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.favorite,
+                          label: 'Favoritos',
+                          value: '${_favorites.length}',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.event,
+                          label: 'EPG',
+                          value: '${_guide?.programmes.length ?? 0}',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: visible.isEmpty
+                      ? _EmptyState(
+                          onImport: _tab == 2 ? _importEpg : _importPlaylist,
+                          favoritesOnly: _tab == 1,
+                          guideOnly: _tab == 2,
+                        )
+                      : ListView.builder(
+                          itemCount: visible.length,
+                          itemBuilder: (context, index) {
+                            final channel = visible[index];
+                            final programme = _currentProgramme(channel);
+                            final isFavorite =
+                                _favorites.contains(channel.url);
+                            return ListTile(
+                              leading: const CircleAvatar(
+                                child: Icon(Icons.live_tv),
+                              ),
+                              title: Text(
+                                channel.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                programme == null
+                                    ? channel.group
+                                    : '${channel.group} · Ahora: ${programme.title}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: IconButton(
+                                tooltip: isFavorite
+                                    ? 'Quitar de favoritos'
+                                    : 'Agregar a favoritos',
+                                icon: Icon(
+                                  isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: isFavorite ? Colors.redAccent : null,
+                                ),
+                                onPressed: () => _toggleFavorite(channel),
+                              ),
+                              onTap: () {
+                                if (_tab == 2 && _guide != null) {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => EpgScreen(
+                                        channel: channel,
+                                        guide: _guide!,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          PlayerScreen(channel: channel),
+                                    ),
+                                  );
+                                }
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (value) => setState(() => _tab = value),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.live_tv),
+            label: 'Canales',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite),
+            label: 'Favoritos',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month),
+            label: 'Programación',
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _InfoTile extends StatelessWidget {
-  const _InfoTile({required this.icon, required this.label, required this.value});
-  final IconData icon; final String label; final String value;
+  const _InfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
   @override
-  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
-    Icon(icon, size: 22), const SizedBox(width: 10),
-    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(value, style: Theme.of(context).textTheme.titleLarge), Text(label, style: Theme.of(context).textTheme.labelMedium)]),
-  ])));
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(icon, size: 22),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onImport, required this.favoritesOnly});
-  final VoidCallback onImport; final bool favoritesOnly;
+  const _EmptyState({
+    required this.onImport,
+    required this.favoritesOnly,
+    required this.guideOnly,
+  });
+
+  final VoidCallback onImport;
+  final bool favoritesOnly;
+  final bool guideOnly;
+
   @override
-  Widget build(BuildContext context) => Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
-    Icon(favoritesOnly ? Icons.favorite_border : Icons.playlist_play, size: 64, color: Theme.of(context).colorScheme.primary),
-    const SizedBox(height: 16),
-    Text(favoritesOnly ? 'Todavía no hay favoritos' : 'Tu catálogo empieza acá', style: Theme.of(context).textTheme.titleLarge),
-    const SizedBox(height: 8),
-    Text(favoritesOnly ? 'Marcá canales con el corazón para encontrarlos acá.' : 'Importá una lista M3U/M3U8 de fuentes propias, públicas autorizadas o licenciadas.', textAlign: TextAlign.center),
-    if (!favoritesOnly) ...[const SizedBox(height: 18), FilledButton.icon(onPressed: onImport, icon: const Icon(Icons.upload_file), label: const Text('Importar lista'))],
-  ])));
+  Widget build(BuildContext context) {
+    final title = favoritesOnly
+        ? 'Todavía no hay favoritos'
+        : guideOnly
+            ? 'Todavía no hay programación'
+            : 'Tu catálogo empieza acá';
+    final description = favoritesOnly
+        ? 'Marcá canales con el corazón para encontrarlos acá.'
+        : guideOnly
+            ? 'Importá una guía XMLTV y vinculala mediante el identificador tvg-id de cada canal.'
+            : 'Importá una lista M3U/M3U8 de fuentes propias, públicas autorizadas o licenciadas.';
+    final icon = favoritesOnly
+        ? Icons.favorite_border
+        : guideOnly
+            ? Icons.event
+            : Icons.playlist_play;
+    final buttonLabel = guideOnly ? 'Importar guía XMLTV' : 'Importar lista';
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 64,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(description, textAlign: TextAlign.center),
+            if (!favoritesOnly) ...[
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: onImport,
+                icon: const Icon(Icons.upload_file),
+                label: Text(buttonLabel),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EpgScreen extends StatelessWidget {
+  const EpgScreen({
+    super.key,
+    required this.channel,
+    required this.guide,
+  });
+
+  final TvChannel channel;
+  final XmltvGuide guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final programmes = guide.programmesFor(channel.tvgId);
+    return Scaffold(
+      appBar: AppBar(title: Text('Programación · ${channel.name}')),
+      body: programmes.isEmpty
+          ? const Center(
+              child: Text('No hay programas disponibles para este canal.'),
+            )
+          : ListView.separated(
+              itemCount: programmes.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final programme = programmes[index];
+                final now = programme.isOnAirAt(DateTime.now());
+                return ListTile(
+                  leading: Icon(
+                    now ? Icons.play_circle_fill : Icons.schedule,
+                    color: now
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
+                  title: Text(programme.title),
+                  subtitle: Text(
+                    '${_formatTime(programme.start)}–'
+                    '${_formatTime(programme.end)}'
+                    '${programme.description.isEmpty ? '' : '\n${programme.description}'}',
+                  ),
+                  isThreeLine: programme.description.isNotEmpty,
+                );
+              },
+            ),
+    );
+  }
+}
+
+String _formatTime(DateTime timestamp) {
+  final local = timestamp.toLocal();
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key, required this.channel});
+
   final TvChannel channel;
+
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen>
+    with WidgetsBindingObserver {
   VideoPlayerController? _controller;
   String? _error;
   bool _busy = true;
+  bool _wasPlayingBeforePause = false;
 
   @override
-  void initState() { super.initState(); _start(); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _start();
+  }
 
   Future<void> _start() async {
+    final previous = _controller;
+    previous?.removeListener(_onPlayerChanged);
+    await previous?.dispose();
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
     try {
-      final controller = VideoPlayerController.networkUrl(Uri.parse(widget.channel.url));
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.channel.url),
+      );
       _controller = controller;
+      controller.addListener(_onPlayerChanged);
       await controller.initialize();
+      if (!mounted) {
+        return;
+      }
       await controller.play();
       if (mounted) {
         setState(() => _busy = false);
@@ -181,24 +595,124 @@ class _PlayerScreenState extends State<PlayerScreen> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'No se pudo iniciar la reproducción. Verificá el enlace, el formato y los permisos de la fuente.';
+          _error =
+              'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
         });
       }
     }
   }
 
-  @override
-  void dispose() { _controller?.dispose(); super.dispose(); }
+  void _onPlayerChanged() {
+    final controller = _controller;
+    if (!mounted || controller == null) {
+      return;
+    }
+    if (controller.value.hasError && _error == null) {
+      setState(() {
+        _busy = false;
+        _error =
+            'La fuente rechazó la reproducción o entregó un formato no compatible.';
+      });
+      return;
+    }
+    setState(() {});
+  }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.channel.name)),
-    body: Center(child: _busy ? const CircularProgressIndicator() : _error != null
-      ? Padding(padding: const EdgeInsets.all(24), child: Text(_error!, textAlign: TextAlign.center))
-      : AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: Stack(alignment: Alignment.bottomCenter, children: [
-          VideoPlayer(_controller!),
-          VideoProgressIndicator(_controller!, allowScrubbing: true),
-          Align(alignment: Alignment.center, child: IconButton.filledTonal(iconSize: 42, onPressed: () => setState(() => _controller!.value.isPlaying ? _controller!.pause() : _controller!.play()), icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow))),
-        ]))),
-  );
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _wasPlayingBeforePause = controller.value.isPlaying;
+      controller.pause();
+    } else if (state == AppLifecycleState.resumed &&
+        _wasPlayingBeforePause) {
+      controller.play();
+      _wasPlayingBeforePause = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.removeListener(_onPlayerChanged);
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    final initialized = controller?.value.isInitialized ?? false;
+    final aspectRatio = initialized && controller!.value.aspectRatio > 0
+        ? controller.value.aspectRatio
+        : 16 / 9;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.channel.name)),
+      body: Center(
+        child: _busy
+            ? const CircularProgressIndicator()
+            : _error != null
+                ? Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48),
+                        const SizedBox(height: 12),
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: _start,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                : controller == null || !initialized
+                    ? const Text('Preparando reproductor...')
+                    : AspectRatio(
+                        aspectRatio: aspectRatio,
+                        child: Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            VideoPlayer(controller),
+                            VideoProgressIndicator(
+                              controller,
+                              allowScrubbing: true,
+                            ),
+                            Align(
+                              alignment: Alignment.center,
+                              child: IconButton.filledTonal(
+                                iconSize: 42,
+                                onPressed: () {
+                                  if (controller.value.isPlaying) {
+                                    controller.pause();
+                                  } else {
+                                    controller.play();
+                                  }
+                                },
+                                icon: Icon(
+                                  controller.value.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
+                                ),
+                              ),
+                            ),
+                            if (controller.value.isBuffering)
+                              const Align(
+                                alignment: Alignment.topCenter,
+                                child: LinearProgressIndicator(),
+                              ),
+                          ],
+                        ),
+                      ),
+      ),
+    );
+  }
 }
