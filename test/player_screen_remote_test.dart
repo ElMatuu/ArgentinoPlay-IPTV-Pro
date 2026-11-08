@@ -133,15 +133,18 @@ void main() {
       final shortcuts = remoteController.remoteShortcuts();
       expect(shortcuts.length, 3);
       expect(
-        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPlayPause)),
+        shortcuts
+        .containsKey(SingleActivator(LogicalKeyboardKey.mediaPlayPause)),
         true,
       );
       expect(
-        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPlay)),
+        shortcuts
+        .containsKey(SingleActivator(LogicalKeyboardKey.mediaPlay)),
         true,
       );
       expect(
-        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPause)),
+        shortcuts
+        .containsKey(SingleActivator(LogicalKeyboardKey.mediaPause)),
         true,
       );
     });
