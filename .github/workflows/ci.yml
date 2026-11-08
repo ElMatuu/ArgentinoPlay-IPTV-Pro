@@ -150,7 +150,7 @@ jobs:
           fi
           echo "Hay archivos Dart que no cumplen 'dart format'."
           dart format lib test
-          git --no-pager diff -- lib test | sed -e 's/ /\u00b7/g' -e 's/\t/\u2192/g' > /tmp/format.diff || true
+          git --no-pager diff -- lib test | sed -e 's/ /·/g' -e 's/	/→/g' > /tmp/format.diff || true
           size="$(wc -c < /tmp/format.diff)"
           echo "Diff de formato (espacios marcados con punto medio): ${size} bytes."
           split -b 850 -d /tmp/format.diff /tmp/fmt_
