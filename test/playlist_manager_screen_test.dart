@@ -54,6 +54,12 @@ void main() {
       ),
     );
     await tester.tap(find.text('Abrir listas'));
+    // The screen loads its manifest from disk. Let real file I/O complete
+    // outside the widget test's fake-async clock before settling animations.
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
     await tester.pumpAndSettle();
   }
 
