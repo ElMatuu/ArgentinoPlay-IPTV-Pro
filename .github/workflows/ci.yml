@@ -230,7 +230,7 @@ jobs:
           else
             code=$?
             cat /tmp/test.out
-            tail -c 8000 /tmp/test.out | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/test.msg
+            sed -n '/EXCEPTION/,$p' /tmp/test.out | head -c 8000 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/test.msg
             split -b 850 -d /tmp/test.msg /tmp/ts_
             count=0
             for chunk in /tmp/ts_*; do
