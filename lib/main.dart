@@ -811,6 +811,9 @@ class _PlayerScreenState extends State<PlayerScreen>
         if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
         _seekBy(controller, const Duration(seconds: 10));
         return KeyEventResult.handled;
+      case PlayerRemoteAction.back:
+        Navigator.of(context).maybePop();
+        return KeyEventResult.handled;
       case null:
         return KeyEventResult.ignored;
     }
