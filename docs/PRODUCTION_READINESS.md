@@ -1,27 +1,30 @@
 # Production readiness — ArgentinoPlay IPTV Pro
 
-## Current repository milestone
+## Implemented in the Flutter client
 
-This repository now contains the first Flutter client foundation:
-- M3U/M3U8 file import and HTTP(S) entry parsing.
-- Channel search and category display.
-- Local favorites persistence.
-- Basic network video playback through video_player.
-- Automated parser/widget tests.
-- GitHub Actions formatting, analysis, tests and Android debug APK artifact.
+- M3U/M3U8 parsing with channel name, group, logo, tvg-id, country and language metadata.
+- XMLTV parsing with channel metadata, programme descriptions/categories and timezone normalization.
+- Import of M3U/M3U8 and XMLTV files with 5 MB and 10 MB limits.
+- Private local persistence of the imported playlist and guide in the app support directory.
+- Temporary-file replacement with backup restoration on failed writes.
+- Startup restoration of the saved playlist and guide; a damaged item does not prevent the other item from loading.
+- Local favorites persistence, channel search, guide view and basic network playback.
+- Parser, storage and widget tests.
+- GitHub Actions formatting, static analysis, automated tests and Android debug APK artifact.
 
-## Not production-ready yet
+## Remaining release blockers
 
-A successful debug APK build is not a production release. The following work remains:
-- Test playback against a documented matrix of authorized HLS/DASH/MP4 streams and real Android devices.
-- Add robust playback state handling, buffering/retry, audio/subtitle selection and lifecycle recovery.
-- Add XMLTV EPG ingestion, timezone handling and channel-program matching.
-- Add secure playlist management, validation, import limits and protection against private-network/SSRF access if remote URL import is introduced.
-- Add Android TV focus/remote navigation and large-screen layouts.
-- Add privacy disclosures, permission review, dependency/license/security scanning and crash diagnostics that do not leak URLs or credentials.
-- Add localization, accessibility, offline/error states and integration tests.
-- Configure release signing outside source control using protected GitHub secrets; never commit keystores or passwords.
-- Run release builds, install on supported devices, execute acceptance tests and document rollback/release procedures.
+- Playback compatibility matrix for authorized HLS, DASH and MP4 streams, including error recovery and long-running playback.
+- Player controls and capability checks for audio tracks, subtitles, aspect ratio, casting and reconnect behavior.
+- Android TV remote/D-pad navigation, focus states, landscape and large-screen acceptance testing.
+- Playlist management beyond a single active playlist: multiple libraries, rename, replace, remove, deduplication and source provenance.
+- EPG refresh/scheduling, large-guide performance, channel matching assistance and programme search.
+- Secure remote playlist/EPG URL import, including private-network/SSRF protections, redirect validation and download timeouts, before any URL-import feature is enabled.
+- Privacy disclosures, permission review, dependency/license/security scanning and privacy-safe diagnostics.
+- Accessibility, localization, responsive layouts and broader integration tests.
+- Release signing outside source control using protected GitHub secrets; never commit keystores or passwords.
+- Release APK/AAB build, install on supported physical devices, acceptance tests and rollback/release procedures.
+- Platform-specific implementations for Samsung Tizen and LG webOS if those TV platforms are in scope; an Android APK does not install on those operating systems.
 
 ## Content rights
 
@@ -29,4 +32,4 @@ Only use streams that are owned, public-domain, explicitly licensed, or otherwis
 
 ## Release gate
 
-Do not label a build production-ready until CI is green, a signed release artifact is produced, rights and privacy checks are complete, and the app has passed real-device acceptance testing.
+A green debug CI run and a generated debug APK are development milestones, not a production release. Do not label the app production-ready until signed release artifacts, rights and privacy checks, security/dependency checks and real-device acceptance tests are complete.
