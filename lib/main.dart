@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -823,10 +824,10 @@ class _PlayerScreenState extends State<PlayerScreen>
         _togglePlayback(controller);
         return KeyEventResult.handled;
       case PlayerRemoteAction.play:
-        controller.play();
+        unawaited(_runPlayerCommand(controller, controller.play));
         return KeyEventResult.handled;
       case PlayerRemoteAction.pause:
-        controller.pause();
+        unawaited(_runPlayerCommand(controller, controller.pause));
         return KeyEventResult.handled;
       case PlayerRemoteAction.seekBackward:
         // Only seek while the player surface itself owns focus. If a child
@@ -854,14 +855,29 @@ class _PlayerScreenState extends State<PlayerScreen>
       offset: offset,
     );
     if (target == null) return;
-    controller.seekTo(target);
+    unawaited(_runPlayerCommand(controller, () => controller.seekTo(target)));
   }
 
   void _togglePlayback(VideoPlayerController controller) {
-    if (controller.value.isPlaying) {
-      controller.pause();
-    } else {
-      controller.play();
+    final command = controller.value.isPlaying
+        ? controller.pause
+        : controller.play;
+    unawaited(_runPlayerCommand(controller, command));
+  }
+
+  Future<void> _runPlayerCommand(
+    VideoPlayerController controller,
+    Future<void> Function() command,
+  ) async {
+    try {
+      await command();
+    } catch (_) {
+      if (!mounted || !identical(_controller, controller)) return;
+      setState(() {
+        _busy = false;
+        _error =
+            'No se pudo completar el control de reproducción. Probá reintentar la fuente.';
+      });
     }
   }
 
@@ -874,9 +890,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       _wasPlayingBeforePause = controller.value.isPlaying;
-      controller.pause();
+      unawaited(_runPlayerCommand(controller, controller.pause));
     } else if (state == AppLifecycleState.resumed && _wasPlayingBeforePause) {
-      controller.play();
+      unawaited(_runPlayerCommand(controller, controller.play));
       _wasPlayingBeforePause = false;
     }
   }
@@ -940,13 +956,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   alignment: Alignment.center,
                                   child: IconButton.filledTonal(
                                     iconSize: 42,
-                                    onPressed: () {
-                                      if (controller.value.isPlaying) {
-                                        controller.pause();
-                                      } else {
-                                        controller.play();
-                                      }
-                                    },
+                                    onPressed: () => _togglePlayback(controller),
                                     icon: Icon(
                                       controller.value.isPlaying
                                           ? Icons.pause
