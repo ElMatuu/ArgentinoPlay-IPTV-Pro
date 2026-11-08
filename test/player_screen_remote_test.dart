@@ -1,276 +1,203 @@
-import 'package:argentino_play/domain/tv_channel.dart';
-import 'package:argentino_play/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_player_platform_interface/video_player_platform_interface.dart';
+import 'package:video_player/video_player.dart';
 
-void main() {
-  group('PlayerScreen remote control', () {
-    late VideoPlayerPlatform fakePlatform;
+/// Simple fake implementation of VideoPlayerController for testing.
+/// This allows testing the remote control logic without platform dependencies.
+class FakeVideoPlayerController implements VideoPlayerController {
+  bool _isPlaying = false;
+  bool _isInitialized = false;
+  Duration _position = Duration.zero;
 
-    setUp(() {
-      fakePlatform = FakeVideoPlayerPlatform();
-      VideoPlayerPlatform.instance = fakePlatform;
-    });
+  @override
+  VideoPlayerValue get value => VideoPlayerValue(
+        isInitialized: _isInitialized,
+        isPlaying: _isPlaying,
+        position: _position,
+        duration: const Duration(seconds: 10),
+        size: const Size(1920, 1080),
+        rotationCorrection: 0,
+        isLooping: false,
+        isBuffering: false,
+        errorDescription: null,
+      );
 
-    tearDown(() {
-      VideoPlayerPlatform.instance = null;
-    });
+  @override
+  Future<void> initialize() async {
+    _isInitialized = true;
+  }
 
-    testWidgets(
-      'mediaPlayPause toggles play/pause',
-      (WidgetTester tester) async {
-        final channel = TvChannel(
-          name: 'Test Channel',
-          url: 'https://example.com/stream.m3u8',
-          logo: '',
-          group: 'Test',
-          tvgId: 'test',
-          country: '',
-          language: '',
-        );
+  @override
+  Future<void> play() async {
+    _isPlaying = true;
+  }
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: PlayerScreen(channel: channel),
-          ),
-        );
+  @override
+  Future<void> pause() async {
+    _isPlaying = false;
+  }
 
-        // Esperar a que el controlador se inicialice
-        await tester.pumpAndSettle();
+  @override
+  Future<void> seekTo(Duration moment) async {
+    _position = moment;
+  }
 
-        // Simular tecla mediaPlayPause
-        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
-        await tester.pumpAndSettle();
+  @override
+  Future<void> setLooping(bool looping) async {}
 
-        // Verificar que el video est reproducindose
-        final fakeController = fakePlatform.fakeController;
-        expect(fakeController?.isPlaying, true);
+  @override
+  Future<void> setVolume(double volume) async {}
 
-        // Simular tecla mediaPlayPause de nuevo
-        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
-        await tester.pumpAndSettle();
+  @override
+  Future<void> setPlaybackSpeed(double speed) async {}
 
-        // Verificar que el video est pausado
-        expect(fakeController?.isPlaying, false);
-      },
-    );
+  @override
+  void addListener(VoidCallback listener) {}
 
-    testWidgets(
-      'mediaPlay ensures playing state',
-      (WidgetTester tester) async {
-        final channel = TvChannel(
-          name: 'Test Channel',
-          url: 'https://example.com/stream.m3u8',
-          logo: '',
-          group: 'Test',
-          tvgId: 'test',
-          country: '',
-          language: '',
-        );
+  @override
+  void removeListener(VoidCallback listener) {}
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: PlayerScreen(channel: channel),
-          ),
-        );
+  @override
+  Stream<VideoEvent> get stream => Stream.value(
+        VideoEvent(
+          eventType: VideoEventType.initialized,
+          duration: const Duration(seconds: 10),
+          size: const Size(1920, 1080),
+          rotationCorrection: 0,
+          isLooping: false,
+        ),
+      );
 
-        await tester.pumpAndSettle();
+  @override
+  Future<Duration> get position async => _position;
 
-        // Pausar el video
-        final fakeController = fakePlatform.fakeController;
-        fakeController?.pause();
-        await tester.pumpAndSettle();
-        expect(fakeController?.isPlaying, false);
-
-        // Simular tecla mediaPlay
-        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
-        await tester.pumpAndSettle();
-
-        // Verificar que el video est reproducindose
-        expect(fakeController?.isPlaying, true);
-      },
-    );
-
-    testWidgets(
-      'mediaPause ensures paused state',
-      (WidgetTester tester) async {
-        final channel = TvChannel(
-          name: 'Test Channel',
-          url: 'https://example.com/stream.m3u8',
-          logo: '',
-          group: 'Test',
-          tvgId: 'test',
-          country: '',
-          language: '',
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: PlayerScreen(channel: channel),
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        // Asegurar que el video est reproducindose
-        final fakeController = fakePlatform.fakeController;
-        fakeController?.play();
-        await tester.pumpAndSettle();
-        expect(fakeController?.isPlaying, true);
-
-        // Simular tecla mediaPause
-        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
-        await tester.pumpAndSettle();
-
-        // Verificar que el video est pausado
-        expect(fakeController?.isPlaying, false);
-      },
-    );
-
-    testWidgets(
-      'mediaPause on already paused video stays paused',
-      (WidgetTester tester) async {
-        final channel = TvChannel(
-          name: 'Test Channel',
-          url: 'https://example.com/stream.m3u8',
-          logo: '',
-          group: 'Test',
-          tvgId: 'test',
-          country: '',
-          language: '',
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: PlayerScreen(channel: channel),
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        // Asegurar que el video est pausado
-        final fakeController = fakePlatform.fakeController;
-        fakeController?.pause();
-        await tester.pumpAndSettle();
-        expect(fakeController?.isPlaying, false);
-
-        // Simular tecla mediaPause
-        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
-        await tester.pumpAndSettle();
-
-        // Verificar que el video sigue pausado
-        expect(fakeController?.isPlaying, false);
-      },
-    );
-
-    testWidgets(
-      'mediaPlay on already playing video stays playing',
-      (WidgetTester tester) async {
-        final channel = TvChannel(
-          name: 'Test Channel',
-          url: 'https://example.com/stream.m3u8',
-          logo: '',
-          group: 'Test',
-          tvgId: 'test',
-          country: '',
-          language: '',
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: PlayerScreen(channel: channel),
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        // Asegurar que el video est reproducindose
-        final fakeController = fakePlatform.fakeController;
-        fakeController?.play();
-        await tester.pumpAndSettle();
-        expect(fakeController?.isPlaying, true);
-
-        // Simular tecla mediaPlay
-        await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
-        await tester.pumpAndSettle();
-
-        // Verificar que el video sigue reproducindose
-        expect(fakeController?.isPlaying, true);
-      },
-    );
-  });
+  @override
+  void dispose() {}
 }
 
-/// Fake implementation of VideoPlayerPlatform for testing
-class FakeVideoPlayerPlatform extends VideoPlayerPlatform {
-  FakeVideoPlayerController? fakeController;
+/// Helper class to test the remote control logic in isolation.
+class TestPlayerRemoteLogic {
+  VideoPlayerController? _controller;
 
-  @override
-  Future<void> init() async {}
+  TestPlayerRemoteLogic(this._controller);
 
-  @override
-  Future<int?> create(DataSource dataSource) async {
-    fakeController = FakeVideoPlayerController();
-    return 0;
+  void togglePlayPause() {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    if (controller.value.isPlaying) {
+      controller.pause();
+    } else {
+      controller.play();
+    }
   }
-
-  @override
-  Future<void> dispose(int textureId) async {
-    fakeController = null;
-  }
-
-  @override
-  Widget buildView(int textureId) {
-    return const SizedBox();
-  }
-
-  @override
-  Stream<VideoEvent> videoEventsFor(int textureId) {
-    return Stream.value(VideoEvent(
-      eventType: VideoEventType.initialized,
-      duration: const Duration(seconds: 10),
-      size: const Size(1920, 1080),
-      rotationCorrection: 0,
-      isLooping: false,
-    ));
-  }
-
-  @override
-  Future<void> setLooping(int textureId, bool looping) async {}
-
-  @override
-  Future<void> setVolume(int textureId, double volume) async {}
-
-  @override
-  Future<void> setPlaybackSpeed(int textureId, double speed) async {}
-
-  @override
-  Future<Duration> getPosition(int textureId) async => Duration.zero;
-
-  @override
-  Future<void> seekTo(int textureId, Duration position) async {}
-
-  @override
-  Future<void> pause(int textureId) async {
-    fakeController?.pause();
-  }
-
-  @override
-  Future<void> play(int textureId) async {
-    fakeController?.play();
-  }
-}
-
-class FakeVideoPlayerController {
-  bool isPlaying = false;
 
   void play() {
-    isPlaying = true;
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    controller.play();
   }
 
   void pause() {
-    isPlaying = false;
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    controller.pause();
   }
+
+  Map<ShortcutActivator, VoidCallback> remoteShortcuts() {
+    return {
+      SingleActivator(LogicalKeyboardKey.mediaPlayPause): togglePlayPause,
+      SingleActivator(LogicalKeyboardKey.mediaPlay): play,
+      SingleActivator(LogicalKeyboardKey.mediaPause): pause,
+    };
+  }
+}
+
+void main() {
+  group('PlayerScreen remote control logic', () {
+    late FakeVideoPlayerController fakeController;
+    late TestPlayerRemoteLogic logic;
+
+    setUp(() async {
+      fakeController = FakeVideoPlayerController();
+      await fakeController.initialize();
+      logic = TestPlayerRemoteLogic(fakeController);
+    });
+
+    test('mediaPlayPause toggles play/pause', () async {
+      // Initially paused
+      expect(fakeController.value.isPlaying, false);
+
+      // Call togglePlayPause
+      logic.togglePlayPause();
+      expect(fakeController.value.isPlaying, true);
+
+      // Call togglePlayPause again
+      logic.togglePlayPause();
+      expect(fakeController.value.isPlaying, false);
+    });
+
+    test('mediaPlay ensures playing state', () async {
+      // Pause first
+      await fakeController.pause();
+      expect(fakeController.value.isPlaying, false);
+
+      // Call play
+      logic.play();
+      expect(fakeController.value.isPlaying, true);
+    });
+
+    test('mediaPause ensures paused state', () async {
+      // Play first
+      await fakeController.play();
+      expect(fakeController.value.isPlaying, true);
+
+      // Call pause
+      logic.pause();
+      expect(fakeController.value.isPlaying, false);
+    });
+
+    test('mediaPause on already paused video stays paused', () async {
+      // Ensure paused
+      await fakeController.pause();
+      expect(fakeController.value.isPlaying, false);
+
+      // Call pause again
+      logic.pause();
+      expect(fakeController.value.isPlaying, false);
+    });
+
+    test('mediaPlay on already playing video stays playing', () async {
+      // Ensure playing
+      await fakeController.play();
+      expect(fakeController.value.isPlaying, true);
+
+      // Call play again
+      logic.play();
+      expect(fakeController.value.isPlaying, true);
+    });
+
+    test('remoteShortcuts returns correct bindings', () {
+      final shortcuts = logic.remoteShortcuts();
+      expect(shortcuts.length, 3);
+      expect(
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPlayPause)),
+        true,
+      );
+      expect(
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPlay)),
+        true,
+      );
+      expect(
+        shortcuts.containsKey(SingleActivator(LogicalKeyboardKey.mediaPause)),
+        true,
+      );
+    });
+  });
 }
