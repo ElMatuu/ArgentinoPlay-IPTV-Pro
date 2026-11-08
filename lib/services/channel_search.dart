@@ -48,5 +48,5 @@ String _normalize(String value) {
   replacements.forEach((source, replacement) {
     normalized = normalized.replaceAll(source, replacement);
   });
-  return normalized.replaceAll(RegExp(r'\\s+'), ' ').trim();
+  return normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
 }
