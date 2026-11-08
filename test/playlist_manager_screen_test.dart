@@ -58,9 +58,15 @@ void main() {
     // outside the widget test's fake-async clock before settling animations.
     await tester.pump();
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      () => Future<void>.delayed(const Duration(milliseconds: 250)),
     );
-    await tester.pumpAndSettle();
+    // The screen displays an indeterminate CircularProgressIndicator while
+    // the manifest is loading. pumpAndSettle can never settle that animation,
+    // even after the file Future completes, so advance a bounded number of
+    // frames and let the following expectations verify that loading finished.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
   }
 
   testWidgets('shows saved playlist and channel count', (tester) async {
