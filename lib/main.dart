@@ -9,6 +9,7 @@ import 'package:video_player/video_player.dart';
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
 import 'services/epg_matcher.dart';
+import 'services/epg_schedule_index.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
@@ -73,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<TvChannel> _channels = [];
   Set<String> _favorites = {};
   XmltvGuide? _guide;
+  EpgScheduleIndex? _scheduleIndex;
   bool _loading = true;
   bool _importing = false;
   String _query = '';
@@ -152,11 +154,14 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // A damaged guide must not prevent the channel list from loading.
     }
+    final scheduleIndex =
+        guide == null ? null : EpgScheduleIndex(guide.programmes);
     if (!mounted) return;
     setState(() {
       _favorites = (prefs.getStringList('favorites') ?? []).toSet();
       _channels = channels;
       _guide = guide;
+      _scheduleIndex = scheduleIndex;
       _activePlaylistId = activePlaylistId;
       _activePlaylistName = activePlaylistName;
       _loading = false;
@@ -311,7 +316,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       await widget.libraryRepository.saveGuide(source);
       if (!mounted) return;
-      setState(() => _guide = guide);
+      setState(() {
+        _guide = guide;
+        _scheduleIndex = EpgScheduleIndex(guide.programmes);
+      });
       _showMessage(
         'Guía importada: ${guide.channels.length} canales y '
         '${guide.programmes.length} programas.',
@@ -339,11 +347,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (guide == null) {
       return null;
     }
-    return currentProgrammeForChannel(
-      channel,
-      guide,
-      at: DateTime.now(),
-    );
+    final matchedChannel = matchEpgChannel(channel, guide);
+    if (matchedChannel == null) return null;
+    return _scheduleIndex?.programmeAt(matchedChannel.id, DateTime.now());
   }
 
   @override
