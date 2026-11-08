@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
+import 'services/local_library_repository.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -18,7 +19,10 @@ export 'services/xmltv_parser.dart';
 void main() => runApp(const ArgentinoPlayApp());
 
 class ArgentinoPlayApp extends StatelessWidget {
-  const ArgentinoPlayApp({super.key});
+  ArgentinoPlayApp({super.key, LocalLibraryRepository? libraryRepository})
+      : libraryRepository = libraryRepository ?? LocalLibraryRepository();
+
+  final LocalLibraryRepository libraryRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -32,13 +36,15 @@ class ArgentinoPlayApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: HomeScreen(libraryRepository: libraryRepository),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.libraryRepository});
+
+  final LocalLibraryRepository libraryRepository;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -61,11 +67,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    List<TvChannel> channels = [];
+    XmltvGuide? guide;
+    try {
+      final playlist = await widget.libraryRepository.loadPlaylist();
+      if (playlist != null) {
+        channels = parseM3u(playlist);
+      }
+    } catch (_) {
+      // Keep the rest of the library usable if a stored playlist is damaged.
+    }
+    try {
+      final source = await widget.libraryRepository.loadGuide();
+      if (source != null) {
+        final parsed = parseXmltv(source);
+        if (parsed.channels.isNotEmpty && parsed.programmes.isNotEmpty) {
+          guide = parsed;
+        }
+      }
+    } catch (_) {
+      // A damaged guide must not prevent the channel list from loading.
+    }
     if (!mounted) {
       return;
     }
     setState(() {
       _favorites = (prefs.getStringList('favorites') ?? []).toSet();
+      _channels = channels;
+      _guide = guide;
       _loading = false;
     });
   }
@@ -130,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'No se encontraron canales HTTP/HTTPS válidos.',
         );
       }
+      await widget.libraryRepository.savePlaylist(source);
       if (!mounted) {
         return;
       }
@@ -183,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'El XMLTV no contiene canales y programas utilizables.',
         );
       }
+      await widget.libraryRepository.saveGuide(source);
       if (!mounted) {
         return;
       }
