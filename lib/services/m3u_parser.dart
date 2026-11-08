@@ -90,7 +90,7 @@ List<TvChannel> parseM3u(String source) {
 }
 
 bool _isM3uHeader(String line) {
-  return RegExp(r'^#EXTM3U(?:\\s|$)', caseSensitive: false).hasMatch(line);
+  return RegExp(r'^#EXTM3U(?:\s|$)', caseSensitive: false).hasMatch(line);
 }
 
 bool _isAllowedStreamUri(Uri? uri) {
