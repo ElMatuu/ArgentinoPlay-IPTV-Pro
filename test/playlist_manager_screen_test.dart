@@ -137,7 +137,19 @@ void main() {
 
     expect(find.text('Mis listas'), findsOneWidget);
     expect(find.text('Noticias'), findsOneWidget);
-    expect(find.text('1 canales'), findsOneWidget);
+    expect(find.text('1 canal'), findsOneWidget);
+  });
+
+  testWidgets('uses plural channel label when count is not one', (tester) async {
+    repository.seed(
+      id: 'sports',
+      name: 'Deportes',
+      channelCount: 2,
+      source: '#EXTM3U\\n',
+    );
+    await openManager(tester, onSelected: (_, __) {});
+
+    expect(find.text('2 canales'), findsOneWidget);
   });
 
   testWidgets('renames a playlist from its actions menu', (tester) async {
