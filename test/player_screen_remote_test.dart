@@ -1,5 +1,4 @@
 import 'package:argentino_play/services/player_remote_controller.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player/video_player.dart';
@@ -8,7 +7,7 @@ import 'package:video_player/video_player.dart';
 class FakeVideoPlayerController implements VideoPlayerController {
   bool _isPlaying = false;
   bool _isInitialized = false;
-  Duration _position = Duration.zero;
+  Duration _position = const Duration();
 
   @override
   VideoPlayerValue get value => VideoPlayerValue(
