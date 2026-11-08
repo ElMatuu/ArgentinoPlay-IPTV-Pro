@@ -19,7 +19,6 @@ class FakeVideoPlayerController implements VideoPlayerController {
         rotationCorrection: 0,
         isLooping: false,
         isBuffering: false,
-        errorDescription: null,
       );
 
   @override
