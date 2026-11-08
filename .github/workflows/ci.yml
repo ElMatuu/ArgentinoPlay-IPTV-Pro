@@ -5,43 +5,186 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
   group: flutter-ci-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   quality-and-android:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
+
       - name: Generate Android platform scaffolding
         run: flutter create --platforms=android --project-name argentino_play .
+
+      - name: Configure and verify Android API 36
+        id: android_sdk
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(command -v sdkmanager || true)"
+          fi
+          if [[ -z "$SDKMANAGER" || ! -x "$SDKMANAGER" ]]; then
+            echo "::error::No se encontró sdkmanager. No se puede instalar ni verificar Android API 36."
+            exit 1
+          fi
+
+          echo "Aceptando licencias del SDK Android (la salida queda visible)."
+          yes | "$SDKMANAGER" --licenses
+
+          echo "Instalando Android SDK Platform 36."
+          "$SDKMANAGER" --install "platforms;android-36"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          candidates = [
+              Path("android/app/build.gradle.kts"),
+              Path("android/app/build.gradle"),
+          ]
+          existing = [path for path in candidates if path.is_file()]
+          if len(existing) != 1:
+              print(
+                  "::error::Se esperaba exactamente un archivo Gradle de la app "
+                  f"(build.gradle.kts o build.gradle); encontrados: {existing}"
+              )
+              sys.exit(1)
+
+          gradle_file = existing[0]
+          source = gradle_file.read_text(encoding="utf-8")
+          patterns = [
+              re.compile(
+                  r"(?m)^(\s*compileSdk\s*=\s*)"
+                  r"(?:flutter\.compileSdkVersion|\d+)(\s*)$"
+              ),
+              re.compile(
+                  r"(?m)^(\s*compileSdkVersion\s+)"
+                  r"(?:flutter\.compileSdkVersion|\d+)(\s*)$"
+              ),
+              re.compile(
+                  r"(?m)^(\s*compileSdk\s+)"
+                  r"(?:flutter\.compileSdkVersion|\d+)(\s*)$"
+              ),
+          ]
+          updated = source
+          replacements = 0
+          for pattern in patterns:
+              updated, count = pattern.subn(r"\g<1>36\g<2>", updated)
+              replacements += count
+
+          if replacements != 1:
+              print(
+                  f"::error::No se pudo fijar compileSdk a 36 de forma inequívoca "
+                  f"en {gradle_file}; coincidencias: {replacements}."
+              )
+              print("Contenido actual del archivo para diagnóstico:")
+              print(source)
+              sys.exit(1)
+
+          gradle_file.write_text(updated, encoding="utf-8")
+          print(f"Configuración aplicada: {gradle_file} -> compileSdk 36")
+
+          properties = Path("android/gradle.properties")
+          if not properties.is_file():
+              print("::error::Falta android/gradle.properties; no se puede activar el reporte completo de advertencias Gradle.")
+              sys.exit(1)
+
+          lines = properties.read_text(encoding="utf-8").splitlines()
+          warning_setting = "org.gradle.warning.mode=all"
+          matching = [i for i, line in enumerate(lines) if line.strip().startswith("org.gradle.warning.mode=")]
+          if matching:
+              lines[matching[0]] = warning_setting
+              for index in reversed(matching[1:]):
+                  del lines[index]
+          else:
+              lines.append(warning_setting)
+          properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print(f"Configuración aplicada: {properties} -> {warning_setting}")
+          PY
+
+          echo "Plataformas Android instaladas:"
+          "$SDKMANAGER" --list_installed
+          echo "Valor compileSdk configurado:"
+          grep -nE 'compileSdk(Version)?[[:space:]]*(=|)[[:space:]]*36' android/app/build.gradle*
+
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Report toolchain versions
+        run: |
+          flutter --version
+          dart --version
+          java -version
+          echo "Android SDK: ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-not-set}}"
+
       - name: Verify formatting
-        run: dart format lib test
-      - name: Static analysis
-        run: flutter analyze
+        id: format
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Static analysis (warnings and infos are fatal)
+        id: analyze
+        run: flutter analyze --fatal-infos --fatal-warnings
+
       - name: Automated tests
+        id: tests
         run: flutter test --reporter expanded
-      - name: Build debug APK
-        run: flutter build apk --debug
+
+      - name: Build debug APK (full Gradle diagnostics)
+        id: build
+        run: flutter build apk --debug --verbose
+
       - name: Upload debug APK
+        id: upload
         uses: actions/upload-artifact@v4
         with:
           name: argentino-play-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: CI result summary
+        if: always()
+        shell: bash
+        env:
+          ANDROID_SDK_OUTCOME: ${{ steps.android_sdk.outcome }}
+          FORMAT_OUTCOME: ${{ steps.format.outcome }}
+          ANALYZE_OUTCOME: ${{ steps.analyze.outcome }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+        run: |
+          printf 'Android SDK/API 36: %s\n' "${ANDROID_SDK_OUTCOME:-not-run}"
+          printf 'Formatting: %s\n' "${FORMAT_OUTCOME:-not-run}"
+          printf 'Static analysis: %s\n' "${ANALYZE_OUTCOME:-not-run}"
+          printf 'Automated tests: %s\n' "${TESTS_OUTCOME:-not-run}"
+          printf 'Debug APK build: %s\n' "${BUILD_OUTCOME:-not-run}"
+          printf 'Artifact upload: %s\n' "${UPLOAD_OUTCOME:-not-run}"
+
+          for outcome in "$ANDROID_SDK_OUTCOME" "$FORMAT_OUTCOME" "$ANALYZE_OUTCOME" "$TESTS_OUTCOME" "$BUILD_OUTCOME" "$UPLOAD_OUTCOME"; do
+            if [[ "$outcome" != "success" ]]; then
+              echo "::error::CI incompleta o fallida. Revisá el primer paso que no terminó en success y su registro detallado."
+              exit 1
+            fi
+          done
