@@ -118,7 +118,7 @@ void main() {
     expect(
       popupRect.right,
       lessThanOrEqualTo(tester.view.physicalSize.width),
-      reason: 'popupRect=$popupRect; scaffold=${tester.getRect(find.byType(Scaffold))}; '
+      reason: 'popupRect=$popupRect; scaffold=${tester.getRect(find.byType(Scaffold).last)}; '
           'listTile=${tester.getRect(find.byType(ListTile))}; '
           'view=${tester.view.physicalSize}; dpr=${tester.view.devicePixelRatio}',
     );
