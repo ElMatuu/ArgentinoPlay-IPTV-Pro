@@ -6,9 +6,15 @@ import 'package:argentino_play/services/epg_matcher.dart';
 void main() {
   final guide = XmltvGuide(
     channels: {
-      'news.ar': EpgChannel(id: 'news.ar', displayName: 'Noticias Árgentina'),
-      'sports.ar': EpgChannel(id: 'sports.ar', displayName: 'Deportes'),
-      'news.backup': EpgChannel(
+      'news.ar': const EpgChannel(
+        id: 'news.ar',
+        displayName: 'Noticias Árgentina',
+      ),
+      'sports.ar': const EpgChannel(
+        id: 'sports.ar',
+        displayName: 'Deportes',
+      ),
+      'news.backup': const EpgChannel(
         id: 'news.backup',
         displayName: 'Noticias Argentina',
       ),
@@ -25,7 +31,7 @@ void main() {
 
   group('matchEpgChannel', () {
     test('uses an exact tvg-id before display-name matching', () {
-      final channel = TvChannel(
+      const channel = TvChannel(
         name: 'Otro nombre',
         url: 'https://example.org/live.m3u8',
         tvgId: 'news.ar',
@@ -35,7 +41,7 @@ void main() {
     });
 
     test('does not fall back to name when an explicit tvg-id is unknown', () {
-      final channel = TvChannel(
+      const channel = TvChannel(
         name: 'Noticias Argentina',
         url: 'https://example.org/live.m3u8',
         tvgId: 'unknown.id',
@@ -45,7 +51,7 @@ void main() {
     });
 
     test('normalizes accents and punctuation for unique name matches', () {
-      final uniqueGuide = XmltvGuide(
+      const uniqueGuide = XmltvGuide(
         channels: {
           'news.ar': EpgChannel(
             id: 'news.ar',
@@ -54,7 +60,7 @@ void main() {
         },
         programmes: [],
       );
-      final channel = TvChannel(
+      const channel = TvChannel(
         name: '  NOTICIAS Argentina - HD ',
         url: 'https://example.org/live.m3u8',
       );
@@ -63,7 +69,7 @@ void main() {
     });
 
     test('rejects ambiguous display-name matches', () {
-      final channel = TvChannel(
+      const channel = TvChannel(
         name: 'Noticias Argentina',
         url: 'https://example.org/live.m3u8',
       );
@@ -72,7 +78,7 @@ void main() {
     });
 
     test('returns null for an empty channel name', () {
-      final channel = TvChannel(
+      const channel = TvChannel(
         name: '',
         url: 'https://example.org/live.m3u8',
       );
@@ -84,7 +90,10 @@ void main() {
   test('currentProgrammeForChannel returns the programme at the instant', () {
     final uniqueGuide = XmltvGuide(
       channels: {
-        'news.ar': EpgChannel(id: 'news.ar', displayName: 'Noticias'),
+        'news.ar': const EpgChannel(
+          id: 'news.ar',
+          displayName: 'Noticias',
+        ),
       },
       programmes: [
         EpgProgramme(
@@ -95,7 +104,7 @@ void main() {
         ),
       ],
     );
-    final channel = TvChannel(
+    const channel = TvChannel(
       name: 'Noticias',
       url: 'https://example.org/live.m3u8',
     );
