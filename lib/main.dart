@@ -779,6 +779,10 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     switch (event.logicalKey) {
       case LogicalKeyboardKey.mediaPlayPause:
+      case LogicalKeyboardKey.select:
+      case LogicalKeyboardKey.enter:
+      case LogicalKeyboardKey.numpadEnter:
+      case LogicalKeyboardKey.space:
         _togglePlayback(controller);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaPlay:
@@ -787,9 +791,26 @@ class _PlayerScreenState extends State<PlayerScreen>
       case LogicalKeyboardKey.mediaPause:
         controller.pause();
         return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowLeft:
+        _seekBy(controller, const Duration(seconds: -10));
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowRight:
+        _seekBy(controller, const Duration(seconds: 10));
+        return KeyEventResult.handled;
       default:
         return KeyEventResult.ignored;
     }
+  }
+
+  void _seekBy(VideoPlayerController controller, Duration offset) {
+    final value = controller.value;
+    final duration = value.duration;
+    if (duration <= Duration.zero) return;
+
+    final target = value.position + offset;
+    final clampedMilliseconds =
+        target.inMilliseconds.clamp(0, duration.inMilliseconds);
+    controller.seekTo(Duration(milliseconds: clampedMilliseconds));
   }
 
   void _togglePlayback(VideoPlayerController controller) {
