@@ -12,10 +12,6 @@ void main() {
     );
   });
 
-  tearDown(() async {
-    await auth.signOut();
-  });
-
   test('rejects malformed email before making a network request', () async {
     await expectLater(
       auth.signIn(email: 'not-an-email', password: 'correct horse battery'),
