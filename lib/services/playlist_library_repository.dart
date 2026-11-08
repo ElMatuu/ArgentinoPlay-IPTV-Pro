@@ -181,12 +181,12 @@ class PlaylistLibraryRepository {
   }
 
   Future<void> deletePlaylist(String id) async {
+    final active = await activePlaylistId();
     final records = await listPlaylists();
     if (!records.any((record) => record.id == id)) return;
     await _writeManifest(records.where((record) => record.id != id).toList());
     final file = await _sourceFile(id);
     if (await file.exists()) await file.delete();
-    final active = await activePlaylistId();
     if (active == id) await setActivePlaylistId(null);
   }
 
