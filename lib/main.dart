@@ -707,6 +707,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   String? _error;
   bool _busy = true;
   bool _wasPlayingBeforePause = false;
+  int _startGeneration = 0;
 
   @override
   void initState() {
@@ -716,11 +717,13 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Future<void> _start() async {
+    final generation = ++_startGeneration;
     final previous = _controller;
+    _controller = null;
     previous?.removeListener(_onPlayerChanged);
     await previous?.dispose();
 
-    if (!mounted) {
+    if (!mounted || generation != _startGeneration) {
       return;
     }
     setState(() {
@@ -728,28 +731,36 @@ class _PlayerScreenState extends State<PlayerScreen>
       _error = null;
     });
 
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(widget.channel.url),
+    );
+    _controller = controller;
     try {
-      final controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.channel.url),
-      );
-      _controller = controller;
       controller.addListener(_onPlayerChanged);
       await controller.initialize();
-      if (!mounted) {
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
         return;
       }
       await controller.play();
-      if (mounted) {
-        setState(() => _busy = false);
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
+        return;
       }
+      setState(() => _busy = false);
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _error =
-              'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
-        });
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
+        return;
       }
+      setState(() {
+        _busy = false;
+        _error =
+            'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
+      });
     }
   }
 
