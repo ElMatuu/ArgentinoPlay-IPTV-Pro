@@ -859,9 +859,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _togglePlayback(VideoPlayerController controller) {
-    final command = controller.value.isPlaying
-        ? controller.pause
-        : controller.play;
+    final command =
+        controller.value.isPlaying ? controller.pause : controller.play;
     unawaited(_runPlayerCommand(controller, command));
   }
 
@@ -956,7 +955,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   alignment: Alignment.center,
                                   child: IconButton.filledTonal(
                                     iconSize: 42,
-                                    onPressed: () => _togglePlayback(controller),
+                                    onPressed: () =>
+                                        _togglePlayback(controller),
                                     icon: Icon(
                                       controller.value.isPlaying
                                           ? Icons.pause
