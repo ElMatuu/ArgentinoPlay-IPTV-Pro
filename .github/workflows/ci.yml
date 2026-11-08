@@ -61,18 +61,21 @@ jobs:
           )
 
           source = source.replace('android:label="argentino_play"', 'android:label="ArgentinoPlay"', 1)
-          launcher = """                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>"""
-          tv_launcher = """                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
-            </intent-filter>"""
-          if source.count(launcher) != 1:
-              print("::error::No se encontró el intent-filter móvil esperado.")
+          import re
+
+          launcher_pattern = re.compile(
+              r'(<category\\s+android:name="android.intent.category.LAUNCHER"\\s*/>\\s*</intent-filter>)'
+          )
+          match = launcher_pattern.search(source)
+          if match is None or "android.intent.category.LEANBACK_LAUNCHER" in source:
+              print("::error::No se encontró un intent-filter móvil único para ampliar.")
               sys.exit(1)
-          source = source.replace(launcher, tv_launcher, 1)
+          tv_launcher = """
+              <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+              </intent-filter>"""
+          source = source[:match.end()] + tv_launcher + source[match.end():]
           manifest.write_text(source, encoding="utf-8")
 
           gradle = Path("android/app/build.gradle.kts")
