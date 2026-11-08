@@ -15,8 +15,8 @@ XmltvGuide parseXmltv(String source) {
       continue;
     }
     final displayName = _firstText(element, 'display-name') ?? id;
-    final iconElement = element.findElements('icon').firstOrNull;
-    final icon = iconElement?.getAttribute('src') ?? '';
+    final icons = element.findElements('icon');
+    final icon = icons.isEmpty ? '' : (icons.first.getAttribute('src') ?? '');
     channels[id] = EpgChannel(id: id, displayName: displayName, icon: icon);
   }
 
@@ -74,6 +74,15 @@ DateTime? parseXmltvTimestamp(String value) {
 
   try {
     var timestamp = DateTime.utc(year, month, day, hour, minute, second);
+    if (timestamp.year != year ||
+        timestamp.month != month ||
+        timestamp.day != day ||
+        timestamp.hour != hour ||
+        timestamp.minute != minute ||
+        timestamp.second != second) {
+      return null;
+    }
+
     final sign = match.group(7);
     if (sign != null) {
       final offsetHours = int.parse(match.group(8)!);
@@ -81,21 +90,8 @@ DateTime? parseXmltvTimestamp(String value) {
       if (offsetHours > 23 || offsetMinutes > 59) {
         return null;
       }
-      final offset = Duration(
-        hours: offsetHours,
-        minutes: offsetMinutes,
-      );
+      final offset = Duration(hours: offsetHours, minutes: offsetMinutes);
       timestamp = sign == '+' ? timestamp.subtract(offset) : timestamp.add(offset);
-    }
-    if (timestamp.year != year ||
-        timestamp.month != month ||
-        timestamp.day != day ||
-        timestamp.hour != hour ||
-        timestamp.minute != minute ||
-        timestamp.second != second) {
-      // DateTime normalizes invalid dates; reject those instead of silently
-      // shifting an EPG event into another day or month.
-      return null;
     }
     return timestamp;
   } on ArgumentError {
