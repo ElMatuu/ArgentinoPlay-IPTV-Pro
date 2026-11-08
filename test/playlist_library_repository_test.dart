@@ -9,14 +9,17 @@ void main() {
 
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('argentino-playlists-');
-    repository = PlaylistLibraryRepository(directoryProvider: () async => directory);
+    repository =
+        PlaylistLibraryRepository(directoryProvider: () async => directory);
   });
 
   tearDown(() async {
-    if (await directory.exists()) await directory.delete(recursive: true);
+    if (await directory.exists()) {
+      await directory.delete(recursive: true);
+    }
   });
 
-  test('creates, lists, loads and selects independent playlists', () async {
+  test('creates, lists, loads and restores selection after reopening', () async {
     final first = await repository.createPlaylist(
       name: 'Noticias',
       source: '#EXTM3U\n#EXTINF:-1,Canal A\nhttps://example.org/a.m3u8\n',
@@ -30,13 +33,21 @@ void main() {
       id: 'sports',
     );
 
-    expect((await repository.listPlaylists()).map((item) => item.name),
-        ['Deportes', 'Noticias']);
+    expect(
+      (await repository.listPlaylists()).map((item) => item.name),
+      ['Deportes', 'Noticias'],
+    );
     expect(await repository.loadPlaylist(first.id), contains('Canal A'));
     expect(await repository.loadPlaylist(second.id), contains('Canal B'));
 
     await repository.setActivePlaylistId(second.id);
-    expect(await repository.activePlaylistId(), second.id);
+
+    final reopened = PlaylistLibraryRepository(
+      directoryProvider: () async => directory,
+    );
+    expect(await reopened.activePlaylistId(), second.id);
+    expect(await reopened.loadPlaylist(second.id), contains('Canal B'));
+    expect(await reopened.listPlaylists(), hasLength(2));
   });
 
   test('renames without changing source and rejects duplicate names', () async {
@@ -105,6 +116,26 @@ void main() {
         channelCount: 1,
       ),
       throwsA(isA<FileSystemException>()),
+    );
+  });
+
+  test('does not activate unknown identifiers', () async {
+    await expectLater(
+      repository.setActivePlaylistId('missing'),
+      throwsA(isA<FormatException>()),
+    );
+    expect(await repository.activePlaylistId(), isNull);
+  });
+
+  test('reports a damaged manifest instead of silently losing the library',
+      () async {
+    final index = File('${directory.path}/playlists/index.json');
+    await index.parent.create(recursive: true);
+    await index.writeAsString('{not-json');
+
+    await expectLater(
+      repository.listPlaylists(),
+      throwsA(isA<FormatException>()),
     );
   });
 }
