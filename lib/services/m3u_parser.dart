@@ -116,7 +116,7 @@ int _findTitleSeparator(String line) {
 
 Map<String, String> _readAttributes(String line) {
   final attributes = <String, String>{};
-  final pattern = RegExp(r'([\\w-]+)\\s*=\\s*"([^"]*)"');
+  final pattern = RegExp(r'([\w-]+)\s*=\s*"([^"]*)"');
   for (final match in pattern.allMatches(line)) {
     final key = match.group(1);
     final value = match.group(2);
