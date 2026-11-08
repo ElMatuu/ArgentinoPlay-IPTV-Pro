@@ -24,8 +24,8 @@ void main() {
 
     test('rejects a malformed header that only starts with EXT M3U text', () {
       expect(
-        () => parseM3u('#EXTM3U_INVALID\\n'
-            '#EXTINF:-1,Canal\\n'
+        () => parseM3u('#EXTM3U_INVALID\n'
+            '#EXTINF:-1,Canal\n'
             'https://example.org/live.m3u8'),
         throwsFormatException,
       );
