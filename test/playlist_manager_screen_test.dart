@@ -140,7 +140,8 @@ void main() {
     expect(find.text('1 canal'), findsOneWidget);
   });
 
-  testWidgets('uses plural channel label when count is not one', (tester) async {
+  testWidgets('uses plural channel label when count is not one',
+      (tester) async {
     repository.seed(
       id: 'sports',
       name: 'Deportes',
