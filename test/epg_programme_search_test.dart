@@ -73,7 +73,13 @@ void main() {
     expect(
       EpgProgrammeSearch.categories([
         ...programmes,
-        programmes.first.copyWith(),
+        EpgProgramme(
+          channelId: 'news',
+          title: 'Otro informativo',
+          start: DateTime.utc(2026, 1, 1, 14),
+          end: DateTime.utc(2026, 1, 1, 15),
+          categories: const ['Informativo'],
+        ),
       ]),
       ['Actualidad', 'Deportes', 'Entretenimiento', 'Informativo'],
     );
