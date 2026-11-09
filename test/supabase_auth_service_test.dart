@@ -45,6 +45,13 @@ void main() {
     );
   });
 
+  test('rejects short passwords before attempting an account update', () async {
+    await expectLater(
+      auth.updatePassword('short'),
+      throwsA(isA<AuthInputException>()),
+    );
+  });
+
   test('rejects unsupported recovery redirect schemes', () async {
     await expectLater(
       auth.sendPasswordRecovery(
