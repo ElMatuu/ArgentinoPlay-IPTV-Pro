@@ -281,6 +281,15 @@ class _HomeScreenState extends State<HomeScreen> {
               _tab = 0;
             });
           },
+          onReplaced: (record, source) {
+            if (!mounted) return;
+            setState(() {
+              _channels = parseM3u(source);
+              _activePlaylistId = record.id;
+              _activePlaylistName = record.name;
+              _tab = 0;
+            });
+          },
         ),
       ),
     );
