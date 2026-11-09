@@ -16,6 +16,7 @@ import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
 import 'services/player_seek.dart';
 import 'services/player_remote_action.dart';
+import 'services/player_startup_timeout.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -749,7 +750,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       );
       _controller = controller;
       controller.addListener(_onPlayerChanged);
-      await controller.initialize();
+      await initializePlayerWithTimeout(controller.initialize());
       if (!mounted ||
           generation != _startGeneration ||
           !identical(_controller, controller)) {
