@@ -104,15 +104,33 @@ jobs:
           sdk_prefix = gradle_lines[sdk_index].split("compileSdk", 1)[0] + "compileSdk = "
           gradle_lines[sdk_index] = sdk_prefix + "36"
           gradle_source = "\n".join(gradle_lines) + "\n"
-          if 'signingConfig = signingConfigs.getByName("debug")' in gradle_source:
-              gradle_source, removed = re.subn(
-                  r'(?ms)^    buildTypes \{\n(?:(?!^    \}).)*?^    \}\n',
-                  "    // Release builds intentionally remain unsigned until protected signing is configured.\n",
-                  gradle_source,
-                  count=1,
+          gradle_lines = gradle_source.splitlines()
+          signing_lines = [
+              index for index, line in enumerate(gradle_lines)
+              if 'signingConfig = signingConfigs.getByName("debug")' in line
+          ]
+          if signing_lines:
+              if len(signing_lines) != 1:
+                  sys.exit("::error::Multiple debug release signing declarations found.")
+              signing_index = signing_lines[0]
+              starts = [
+                  index for index, line in enumerate(gradle_lines[:signing_index])
+                  if line == "    buildTypes {"
+              ]
+              ends = [
+                  index for index, line in enumerate(gradle_lines[signing_index + 1:], signing_index + 1)
+                  if line == "    }"
+              ]
+              if not starts or not ends:
+                  sys.exit("::error::Could not safely locate generated release signing block.")
+              start_index = starts[-1]
+              end_index = ends[0]
+              del gradle_lines[start_index:end_index + 1]
+              gradle_lines.insert(
+                  start_index,
+                  "    // Release builds intentionally remain unsigned until protected signing is configured.",
               )
-              if removed != 1:
-                  sys.exit("::error::Could not safely remove debug release signing configuration.")
+              gradle_source = "\n".join(gradle_lines) + "\n"
           gradle.write_text(gradle_source, encoding="utf-8")
 
           old = root / "app/src/main/kotlin/com/example/argentino_play/MainActivity.kt"
