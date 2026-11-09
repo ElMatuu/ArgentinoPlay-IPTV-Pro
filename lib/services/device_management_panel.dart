@@ -26,7 +26,8 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
   @override
   void initState() {
     super.initState();
-    _service = widget.service ??
+    _service =
+        widget.service ??
         DeviceRegistrationService(
           gateway: SupabaseDeviceRegistryGateway(Supabase.instance.client),
           idStore: PreferencesDeviceIdStore(),
@@ -60,7 +61,8 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No se pudieron cargar los dispositivos. Revisá la conexión y los permisos de la cuenta.';
+        _error =
+            'No se pudieron cargar los dispositivos. Revisá la conexión y los permisos de la cuenta.';
       });
     }
   }
@@ -88,8 +90,9 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Revocar dispositivo'),
         content: Text(
-          '¿Querés revocar "' + device.label +
-          '" para futuras operaciones de sincronización? La sesión de ese equipo no se cierra automáticamente.',
+          '¿Querés revocar "' +
+              device.label +
+              '" para futuras operaciones de sincronización? La sesión de ese equipo no se cierra automáticamente.',
         ),
         actions: [
           TextButton(
@@ -125,9 +128,15 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
 
   String _dateLabel(DateTime value) {
     final local = value.toLocal();
-    final date = local.day.toString().padLeft(2, '0') + '/' +
-        local.month.toString().padLeft(2, '0') + '/' + local.year.toString();
-    final time = local.hour.toString().padLeft(2, '0') + ':' +
+    final date =
+        local.day.toString().padLeft(2, '0') +
+        '/' +
+        local.month.toString().padLeft(2, '0') +
+        '/' +
+        local.year.toString();
+    final time =
+        local.hour.toString().padLeft(2, '0') +
+        ':' +
         local.minute.toString().padLeft(2, '0');
     return date + ' · ' + time;
   }
@@ -145,7 +154,10 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
                 const Icon(Icons.devices_other),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Mis dispositivos', style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    'Mis dispositivos',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 IconButton(
                   tooltip: 'Actualizar dispositivos',
@@ -154,7 +166,9 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
                 ),
               ],
             ),
-            const Text('Administrá los equipos asociados a tu cuenta. Revocar un equipo bloquea su uso en futuras funciones de sincronización.'),
+            const Text(
+              'Administrá los equipos asociados a tu cuenta. Revocar un equipo bloquea su uso en futuras funciones de sincronización.',
+            ),
             const SizedBox(height: 12),
             if (_loading)
               const Center(
@@ -164,7 +178,10 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
                 ),
               )
             else if (_error != null)
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              )
             else if (_devices.isEmpty)
               const Text('Todavía no hay dispositivos registrados.')
             else
@@ -173,23 +190,28 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
                 final isRevoked = device.revokedAt != null;
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(isCurrent ? Icons.phone_android : Icons.devices),
+                  leading: Icon(
+                    isCurrent ? Icons.phone_android : Icons.devices,
+                  ),
                   title: Text(device.label),
                   subtitle: Text(
-                    device.platform + ' · v' + device.appVersion +
-                    '\nÚltima actividad: ' + _dateLabel(device.lastSeenAt) +
-                    (isRevoked ? '\nAcceso revocado' : ''),
+                    device.platform +
+                        ' · v' +
+                        device.appVersion +
+                        '\nÚltima actividad: ' +
+                        _dateLabel(device.lastSeenAt) +
+                        (isRevoked ? '\nAcceso revocado' : ''),
                   ),
                   isThreeLine: true,
                   trailing: isCurrent
                       ? const Chip(label: Text('Este equipo'))
                       : isRevoked
-                          ? const Chip(label: Text('Revocado'))
-                          : IconButton(
-                              tooltip: 'Revocar dispositivo',
-                              onPressed: _revoking ? null : () => _revoke(device),
-                              icon: const Icon(Icons.block),
-                            ),
+                      ? const Chip(label: Text('Revocado'))
+                      : IconButton(
+                          tooltip: 'Revocar dispositivo',
+                          onPressed: _revoking ? null : () => _revoke(device),
+                          icon: const Icon(Icons.block),
+                        ),
                 );
               }),
             if (_revoking) const LinearProgressIndicator(),
