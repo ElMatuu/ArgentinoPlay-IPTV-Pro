@@ -5,11 +5,29 @@ import '../domain/tv_channel.dart';
 /// Maximum UTF-8 size accepted by the M3U parser (same limit as playlist storage).
 const int maxM3uSourceBytes = 5 * 1024 * 1024;
 
+/// A playlist parse result with counts for entries that were not imported.
+class M3uParseReport {
+  M3uParseReport({
+    required List<TvChannel> channels,
+    required this.missingStreamUrlCount,
+    required this.rejectedStreamUrlCount,
+  }) : channels = List.unmodifiable(channels);
+
+  final List<TvChannel> channels;
+  final int missingStreamUrlCount;
+  final int rejectedStreamUrlCount;
+
+  int get rejectedEntries => missingStreamUrlCount + rejectedStreamUrlCount;
+}
+
 /// Parses an M3U/M3U8 playlist and keeps only safe HTTP(S) stream URLs.
 ///
 /// This parser does not verify ownership or retransmission rights. The caller
 /// must ensure every imported source is authorized for the intended use.
-List<TvChannel> parseM3u(String source) {
+List<TvChannel> parseM3u(String source) => parseM3uWithReport(source).channels;
+
+/// Parses an M3U/M3U8 playlist and reports entries omitted from the result.
+M3uParseReport parseM3uWithReport(String source) {
   if (utf8.encode(source).length > maxM3uSourceBytes) {
     throw const FormatException('Playlist exceeds the 5 MB limit.');
   }
@@ -26,6 +44,8 @@ List<TvChannel> parseM3u(String source) {
   }
 
   final channels = <TvChannel>[];
+  var missingStreamUrlCount = 0;
+  var rejectedStreamUrlCount = 0;
   String? pendingName;
   String pendingLogo = '';
   String pendingGroup = 'General';
@@ -40,6 +60,9 @@ List<TvChannel> parseM3u(String source) {
     }
 
     if (line.startsWith('#EXTINF:')) {
+      if (pendingName != null) {
+        missingStreamUrlCount++;
+      }
       final comma = _findTitleSeparator(line);
       final attributesPart = comma < 0 ? line : line.substring(0, comma);
       final title = comma < 0 ? '' : line.substring(comma + 1).trim();
@@ -83,6 +106,8 @@ List<TvChannel> parseM3u(String source) {
           language: pendingLanguage,
         ),
       );
+    } else {
+      rejectedStreamUrlCount++;
     }
 
     pendingName = null;
@@ -93,7 +118,15 @@ List<TvChannel> parseM3u(String source) {
     pendingLanguage = '';
   }
 
-  return channels;
+  if (pendingName != null) {
+    missingStreamUrlCount++;
+  }
+
+  return M3uParseReport(
+    channels: channels,
+    missingStreamUrlCount: missingStreamUrlCount,
+    rejectedStreamUrlCount: rejectedStreamUrlCount,
+  );
 }
 
 bool _isM3uHeader(String line) {
