@@ -17,6 +17,7 @@ class M3uParseReport {
   final int missingStreamUrlCount;
   final int rejectedStreamUrlCount;
 
+  /// Total entries omitted because their URL was missing or not accepted.
   int get rejectedEntries => missingStreamUrlCount + rejectedStreamUrlCount;
 }
 
