@@ -46,6 +46,19 @@ void main() {
       );
     });
 
+    test('rejects playlists larger than the parser size limit', () {
+      final padding = List<String>.filled(1024, 'x').join();
+      final oversized = StringBuffer('#EXTM3U\n');
+      for (var index = 0; index < 5121; index++) {
+        oversized.write(padding);
+      }
+
+      expect(
+        () => parseM3u(oversized.toString()),
+        throwsFormatException,
+      );
+    });
+
     test('ignores unsupported schemes and URLs with embedded credentials', () {
       const playlist = '#EXTM3U\n'
           '#EXTINF:-1,Local file\n'
