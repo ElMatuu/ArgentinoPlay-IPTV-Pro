@@ -33,17 +33,20 @@ RemotePlaylistUrlDecision validateRemotePlaylistUrl(String input) {
   }
 
   final host = uri.host.toLowerCase();
-  if (host.isEmpty ||
-      host == 'localhost' ||
-      host.endsWith('.localhost') ||
-      host.endsWith('.local') ||
-      !host.contains('.')) {
+  final normalizedHost =
+      host.startsWith('[') && host.endsWith(']') ? host.substring(1, host.length - 1) : host;
+  final address = InternetAddress.tryParse(normalizedHost);
+  if (address == null &&
+      (normalizedHost.isEmpty ||
+          normalizedHost == 'localhost' ||
+          normalizedHost.endsWith('.localhost') ||
+          normalizedHost.endsWith('.local') ||
+          !normalizedHost.contains('.'))) {
     return const RemotePlaylistUrlDecision.reject(
       'Local or non-qualified hostnames are not allowed.',
     );
   }
 
-  final address = InternetAddress.tryParse(host);
   if (address != null && _isNonPublicAddress(address)) {
     return const RemotePlaylistUrlDecision.reject(
       'Private, local, or reserved IP addresses are not allowed.',
@@ -64,9 +67,9 @@ bool _isNonPublicAddress(InternetAddress address) {
         (a == 100 && b >= 64 && b <= 127) ||
         (a == 169 && b == 254) ||
         (a == 172 && b >= 16 && b <= 31) ||
-        (a == 192 && b == 0) ||
-        (a == 192 && b == 168) ||
-        (a == 198 && (b == 18 || b == 19)) ||
+        (a == 192 && (b == 0 || b == 168)) ||
+        (a == 198 && (b == 18 || b == 19 || b == 51)) ||
+        (a == 203 && b == 0) ||
         a >= 224;
   }
 
