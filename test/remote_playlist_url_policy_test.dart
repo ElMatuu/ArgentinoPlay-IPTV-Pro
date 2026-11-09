@@ -105,6 +105,46 @@ void main() {
       }
     });
 
+    test('rejects special-purpose IPv4 ranges', () {
+      for (final host in [
+        '192.0.0.8',
+        '192.0.2.1',
+        '192.88.99.1',
+        '198.51.100.1',
+        '203.0.113.1',
+        '240.0.0.1',
+      ]) {
+        expect(
+          validateRemotePlaylistUrl('https://$host/list.m3u').allowed,
+          isFalse,
+          reason: 'Expected special-purpose IPv4 address $host to be rejected',
+        );
+      }
+    });
+
+    test('rejects IPv6 protocol, documentation and transition ranges', () {
+      for (final host in [
+        '[2001::1]',
+        '[2001:db8::1]',
+        '[2002:c000:0201::1]',
+        '[3fff::1]',
+      ]) {
+        expect(
+          validateRemotePlaylistUrl('https://$host/list.m3u').allowed,
+          isFalse,
+          reason: 'Expected special-purpose IPv6 address $host to be rejected',
+        );
+      }
+    });
+
+    test('allows a public IPv6 global-unicast address', () {
+      expect(
+        validateRemotePlaylistUrl('https://[2606:4700:4700::1111]/list.m3u')
+            .allowed,
+        isTrue,
+      );
+    });
+
     test('documents the DNS resolution boundary', () {
       final result =
           validateRemotePlaylistUrl('https://media.example.org/list.m3u');
