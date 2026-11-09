@@ -14,9 +14,9 @@ void main() {
             ),
             focusColor: const Color(0xFF16A085).withValues(alpha: 0.22),
           ),
-          home: const Scaffold(
+          home: Scaffold(
             body: FocusTraversalGroup(
-              child: Column(
+              child: const Column(
                 children: [
                   ListTile(
                     autofocus: true,
