@@ -16,17 +16,17 @@
 - PR #5, #6 y #7 se organizaron como cadena de dependencias: #5 apunta a `main`, #6 a #5 y #7 a #6. GitHub informa ramas sin conflictos en el último control; los nuevos commits de CI deben aprobarse antes de revisión. Ninguno está fusionado.
 - PR #3, #4 y #9 siguen abiertas; sus últimas ejecuciones conocidas terminaron correctamente. Issue #1 sigue siendo el registro de aceptación y fases.
 - El proyecto Supabase conectado está `ACTIVE_HEALTHY`. La migración `20261108132652_initial_account_and_sync_schema` figura aplicada. Se verificaron siete tablas públicas, RLS habilitado en las siete y nueve políticas de propiedad. Los asesores de seguridad y salud no informaron hallazgos; el asesor de rendimiento solo muestra índices todavía no utilizados en una base sin tráfico.
-- Hallazgo de endurecimiento pendiente: los grants efectivos de `authenticated` son más amplios que el mínimo previsto por la migración; RLS sigue limitando filas y no hay grants de tabla a `anon`, pero se debe añadir una migración versionada que revoque privilegios sobrantes y vuelva a conceder solo los necesarios antes de activar sincronización.
+- Endurecimiento de permisos: PR #5 ahora contiene la migración CLI generada `20261109014013_tighten_authenticated_table_grants.sql`. Se probó su SQL dentro de una transacción contra el proyecto alojado y se confirmó que conserva RLS, elimina `TRUNCATE` y limita cada tabla a los permisos requeridos; la transacción se revirtió, por lo que la base alojada todavía no cambió. Falta CI y aprobación antes de aplicar.
 - El bootstrap ahora considera disponible la nube solo después de que `Supabase.initialize` termina correctamente; se añadió validación de nombre de perfil hasta 80 caracteres y su prueba. La configuración Android de CI incluye launcher TV, identificador de aplicación y deep link de Auth.
 - El workflow de estas PR valida formato sin reescribir fuentes, analiza, prueba y compila APK debug. El APK sigue sin firma de release. El scaffold Android continúa generándose en CI y `pubspec.lock` no está incorporado en `main`.
-- La allowlist de redirects del proyecto Auth alojado no está verificada. La pantalla de recuperación completa, cambio de contraseña desde deep link y pruebas end-to-end de Auth siguen pendientes.
+- PR #7 ahora incluye solicitud de recuperación, escucha del evento `passwordRecovery` y formulario para establecer una contraseña nueva. La allowlist de redirects del proyecto Auth alojado sigue sin verificarse; el flujo aún necesita CI, prueba de correo/deep link en dispositivo y verificación de la configuración del dashboard.
 - CI verde no equivale a validación en teléfono o Android TV físico. No hay evidencia de prueba de reproducción real, navegación D-pad en hardware ni matriz de streams autorizados.
 
 ## Próximas acciones priorizadas
 
 1. Cerrar las ejecuciones CI actuales de PR #5–#7 y mantener el orden de integración #5 → #6 → #7, sin fusionar sin aprobación.
-2. Crear y probar una migración versionada de privilegios mínimos para las siete tablas; validar grants y políticas RLS con dos usuarios distintos antes de activar sincronización.
-3. Verificar la allowlist de redirects Auth alojada e implementar el flujo completo de recuperación/cambio de contraseña y deep link.
+2. Completar CI de la migración versionada en PR #5; revisar y aprobar su aplicación al proyecto alojado, y después validar grants y políticas RLS con dos usuarios distintos.
+3. Verificar la allowlist de redirects Auth alojada y probar el flujo de recuperación/cambio de contraseña y deep link en un dispositivo Android.
 4. Implementar registro/revocación de dispositivos y API transaccional push/pull, resolución de conflictos, idempotencia y borrado seguro; no subir URLs M3U ni credenciales.
 5. Incorporar `pubspec.lock` y definir el scaffold Android reproducible para builds locales.
 6. Completar pruebas adversariales de M3U/XMLTV, persistencia, reproducción y recuperación de red.
