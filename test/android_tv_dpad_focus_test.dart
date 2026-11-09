@@ -11,12 +11,12 @@ void main() {
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF16A085)),
           focusColor: const Color(0xFF16A085).withValues(alpha: 0.22),
         ),
-        home: const Scaffold(
+        home: Scaffold(
           body: FocusTraversalGroup(
             child: Column(
               children: [
-                ListTile(title: Text('Canal Uno'), onTap: _noop),
-                ListTile(title: Text('Canal Dos'), onTap: _noop),
+                ListTile(autofocus: true, title: const Text('Canal Uno'), onTap: _noop),
+                ListTile(title: const Text('Canal Dos'), onTap: _noop),
               ],
             ),
           ),
