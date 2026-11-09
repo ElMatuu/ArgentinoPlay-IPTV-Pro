@@ -133,7 +133,17 @@ void main() {
           '#EXTINF:-1,Canal\n'
           'https://example.org/live.m3u8\n';
 
-      expect(parseM3u(playlist), parseM3uWithReport(playlist).channels);
+      final legacyChannels = parseM3u(playlist);
+      final reportChannels = parseM3uWithReport(playlist).channels;
+
+      expect(legacyChannels, hasLength(reportChannels.length));
+      expect(legacyChannels.single.name, reportChannels.single.name);
+      expect(legacyChannels.single.url, reportChannels.single.url);
+      expect(legacyChannels.single.logo, reportChannels.single.logo);
+      expect(legacyChannels.single.group, reportChannels.single.group);
+      expect(legacyChannels.single.tvgId, reportChannels.single.tvgId);
+      expect(legacyChannels.single.country, reportChannels.single.country);
+      expect(legacyChannels.single.language, reportChannels.single.language);
     });
   });
 }
