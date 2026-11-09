@@ -7,9 +7,11 @@ abstract final class SupabaseBootstrap {
   static const String _url = String.fromEnvironment('SUPABASE_URL');
   static const String _publishableKey =
       String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+  static bool _initialized = false;
 
-  static bool get isConfigured =>
-      _url.isNotEmpty && _publishableKey.isNotEmpty;
+  /// True only after Supabase.initialize completed successfully.
+  /// Environment variables alone do not mean the client is ready.
+  static bool get isConfigured => _initialized;
 
   /// Returns false when cloud configuration is absent (offline/local mode).
   static Future<bool> initializeFromEnvironment() async {
@@ -38,6 +40,7 @@ abstract final class SupabaseBootstrap {
     }
 
     await Supabase.initialize(url: _url, publishableKey: _publishableKey);
+    _initialized = true;
     return true;
   }
 }
