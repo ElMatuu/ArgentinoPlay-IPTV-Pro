@@ -104,6 +104,22 @@ jobs:
           sdk_prefix = gradle_lines[sdk_index].split("compileSdk", 1)[0] + "compileSdk = "
           gradle_lines[sdk_index] = sdk_prefix + "36"
           gradle_source = "\n".join(gradle_lines) + "\n"
+          debug_signing_block = """    buildTypes {
+                  release {
+                      // TODO: Add your own signing config for the release build.
+                      // Signing with the debug keys for now, so \`flutter run --release\` works.
+                      signingConfig = signingConfigs.getByName("debug")
+                  }
+              }
+          """
+          if debug_signing_block in gradle_source:
+              gradle_source = gradle_source.replace(
+                  debug_signing_block,
+                  "    // Release builds intentionally remain unsigned until protected signing is configured.\n",
+                  1,
+              )
+          elif 'signingConfig = signingConfigs.getByName("debug")' in gradle_source:
+              sys.exit("::error::Unexpected debug signing configuration in release build.")
           gradle.write_text(gradle_source, encoding="utf-8")
 
           old = root / "app/src/main/kotlin/com/example/argentino_play/MainActivity.kt"
@@ -147,6 +163,7 @@ jobs:
               "package com.argentinoplay.app" in new.read_text(encoding="utf-8"),
               "android.intent.category.LEANBACK_LAUNCHER" in source,
               "android.permission.INTERNET" in source,
+              'signingConfig = signingConfigs.getByName("debug")' not in gradle_source,
           ]
           if not all(checks):
               sys.exit("::error::Android identity or launcher verification failed.")
