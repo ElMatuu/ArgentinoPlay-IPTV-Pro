@@ -1,6 +1,7 @@
 import 'package:argentino_play/main.dart';
 import 'package:argentino_play/services/local_library_repository.dart';
 import 'package:argentino_play/services/playlist_library_repository.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,6 +19,22 @@ class _EmptyLibraryRepository extends LocalLibraryRepository {
 
   @override
   Future<String?> loadGuide() async => null;
+}
+
+Future<void> _pumpHome(WidgetTester tester) async {
+  SharedPreferences.setMockInitialValues({});
+  await tester.pumpWidget(
+    ArgentinoPlayApp(
+      libraryRepository: _EmptyLibraryRepository(),
+      playlistRepository: _EmptyPlaylistRepository(),
+    ),
+  );
+
+  // Avoid pumpAndSettle because indeterminate progress indicators can keep
+  // scheduling frames while the app is loading.
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.pump();
 }
 
 void main() {
@@ -44,21 +61,25 @@ void main() {
   });
 
   testWidgets('home screen shows playlist import empty state', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(
-      ArgentinoPlayApp(
-        libraryRepository: _EmptyLibraryRepository(),
-        playlistRepository: _EmptyPlaylistRepository(),
-      ),
-    );
-
-    // Do not use pumpAndSettle here: indeterminate progress indicators can
-    // keep scheduling frames and make a widget test wait forever.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump();
+    await _pumpHome(tester);
 
     expect(find.text('Tu catálogo empieza acá'), findsOneWidget);
     expect(find.text('Importar lista'), findsOneWidget);
+  });
+
+  testWidgets('TV-style directional focus and select opens Favorites tab',
+      (tester) async {
+    await _pumpHome(tester);
+
+    final channelsDestination = find.text('Canales').last;
+    await tester.tap(channelsDestination);
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(find.text('Todavía no hay favoritos'), findsOneWidget);
   });
 }
