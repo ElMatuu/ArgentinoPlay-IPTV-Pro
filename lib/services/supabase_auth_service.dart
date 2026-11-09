@@ -22,13 +22,19 @@ class SupabaseAuthService {
   }) async {
     final normalizedEmail = _validateEmail(email);
     _validatePassword(password);
+    final normalizedDisplayName = displayName?.trim();
+    if (normalizedDisplayName != null && normalizedDisplayName.length > 80) {
+      throw const AuthInputException(
+        'El nombre no puede superar los 80 caracteres.',
+      );
+    }
 
     return _client.auth.signUp(
       email: normalizedEmail,
       password: password,
       data: {
-        if (displayName != null && displayName.trim().isNotEmpty)
-          'name': displayName.trim(),
+        if (normalizedDisplayName != null && normalizedDisplayName.isNotEmpty)
+          'name': normalizedDisplayName,
       },
     );
   }
