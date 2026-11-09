@@ -72,8 +72,12 @@ void main() {
   stdout.writeln('Playlist: $playlistCount channels');
   stdout.writeln('XML bytes: ${xml.length}');
   stdout.writeln('Parse: ${parseWatch.elapsedMilliseconds} ms');
-  stdout.writeln('Build reusable name index: ${indexWatch.elapsedMicroseconds} µs');
-  stdout.writeln('Match with reused index: ${reusedWatch.elapsedMicroseconds} µs');
+  stdout.writeln(
+    'Build reusable name index: ${indexWatch.elapsedMicroseconds} µs',
+  );
+  stdout.writeln(
+    'Match with reused index: ${reusedWatch.elapsedMicroseconds} µs',
+  );
   stdout.writeln('Match rebuilding index per lookup: '
       '${rebuiltWatch.elapsedMilliseconds} ms');
 }
