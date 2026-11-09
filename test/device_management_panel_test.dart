@@ -50,15 +50,15 @@ void main() {
 }
 
 Map<String, dynamic> _row(String id, String label, String platform) => {
-  'id': id,
-  'user_id': _user,
-  'device_label': label,
-  'platform': platform,
-  'app_version': '1.0.0+1',
-  'created_at': '2026-11-08T12:00:00.000Z',
-  'last_seen_at': '2026-11-09T12:00:00.000Z',
-  'revoked_at': null,
-};
+      'id': id,
+      'user_id': _user,
+      'device_label': label,
+      'platform': platform,
+      'app_version': '1.0.0+1',
+      'created_at': '2026-11-08T12:00:00.000Z',
+      'last_seen_at': '2026-11-09T12:00:00.000Z',
+      'revoked_at': null,
+    };
 
 class _PanelIdStore implements DeviceIdStore {
   final Map<String, String> values = {};
@@ -98,11 +98,11 @@ class _PanelGateway implements DeviceRegistryGateway {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> listDevices(String userId) async => rows
-      .values
-      .where((row) => row['user_id'] == userId)
-      .map(Map<String, dynamic>.from)
-      .toList();
+  Future<List<Map<String, dynamic>>> listDevices(String userId) async =>
+      rows.values
+          .where((row) => row['user_id'] == userId)
+          .map(Map<String, dynamic>.from)
+          .toList();
 
   @override
   Future<void> revokeDevice({
