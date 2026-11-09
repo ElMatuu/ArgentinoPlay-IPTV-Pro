@@ -8,27 +8,30 @@
 
 ## Estado actual verificado
 
-- La rama `main` tiene una ejecución de CI exitosa (#21, run `42534462677`), pero no contiene todavía las funcionalidades de las PR #22–#25.
-- PR #22: búsqueda de canales por país, idioma y metadatos EPG. CI exitoso en el commit `3baf96180d327086e26932fcf72905358a2e3623`.
-- PR #23: visualización segura de logos M3U. CI exitoso en `a8a8e5e1bebfb01297e2f37b1417e8685fb4e721`.
-- PR #24: búsqueda y filtros de programas EPG. CI exitoso en `cd84d5e54ed1f210ef1f3125c55381d8b934ff81`; incluye corrección de salto de línea en descripciones.
-- PR #25: reemplazo seguro de fuentes de listas existentes. CI exitoso en `2aed2f256d6dd4dfbaed675669bf5d559e7205df`.
-- PR #3–#7 y PR #9 siguen abiertas. Las PR #6 y #7 tienen conflictos/estado de base no limpio informado por GitHub y deben reconciliarse antes de revisión final. PR #7 depende de PR #6; PR #6 depende de la configuración y decisiones de PR #5. No fusionarlas fuera de orden.
-- Issue #1 sigue abierto como registro principal de aceptación y fases.
-- El workflow de CI ejecuta formato, análisis estático, pruebas, build Android debug y publicación de artefacto. El APK de CI es de depuración, no un APK/AAB release firmado.
-- El directorio Android se genera en CI y `pubspec.lock` no estaba presente en `main` en esta revisión; ambos son pendientes de reproducibilidad.
-- CI verde no equivale a validación en un teléfono o Android TV físico. La prueba real de reproducción, navegación D-pad y compatibilidad de streams autorizados sigue pendiente en hardware.
-- La integración Supabase no debe darse por completa por la existencia de PRs o secretos. La aplicación debe continuar funcionando localmente sin configuración cloud. Solo URL del proyecto y publishable key pueden llegar al cliente; nunca claves secret/service-role, tokens administrativos o contraseñas.
+- La rama `main` sigue en el commit `cc2df1e91e237b8d5fd8bdf08d8f74570cb4127b`; no se modificó ni se fusionó ningún PR.
+- PR #22: búsqueda de canales por país, idioma y metadatos EPG. Último CI conocido exitoso en `3baf96180d327086e26932fcf72905358a2e3623`.
+- PR #23: visualización segura de logos M3U. Último CI conocido exitoso en `a8a8e5e1bebfb01297e2f37b1417e8685fb4e721`.
+- PR #24: búsqueda y filtros de programas EPG. Último CI conocido exitoso en `cd84d5e54ed1f210ef1f3125c55381d8b934ff81`.
+- PR #25: reemplazo seguro de fuentes de listas existentes. Último CI conocido exitoso en `2aed2f256d6dd4dfbaed675669bf5d559e7205df`.
+- PR #5, #6 y #7 se organizaron como cadena de dependencias: #5 apunta a `main`, #6 a #5 y #7 a #6. GitHub informa ramas sin conflictos en el último control; los nuevos commits de CI deben aprobarse antes de revisión. Ninguno está fusionado.
+- PR #3, #4 y #9 siguen abiertas; sus últimas ejecuciones conocidas terminaron correctamente. Issue #1 sigue siendo el registro de aceptación y fases.
+- El proyecto Supabase conectado está `ACTIVE_HEALTHY`. La migración `20261108132652_initial_account_and_sync_schema` figura aplicada. Se verificaron siete tablas públicas, RLS habilitado en las siete y nueve políticas de propiedad. Los asesores de seguridad y salud no informaron hallazgos; el asesor de rendimiento solo muestra índices todavía no utilizados en una base sin tráfico.
+- Hallazgo de endurecimiento pendiente: los grants efectivos de `authenticated` son más amplios que el mínimo previsto por la migración; RLS sigue limitando filas y no hay grants de tabla a `anon`, pero se debe añadir una migración versionada que revoque privilegios sobrantes y vuelva a conceder solo los necesarios antes de activar sincronización.
+- El bootstrap ahora considera disponible la nube solo después de que `Supabase.initialize` termina correctamente; se añadió validación de nombre de perfil hasta 80 caracteres y su prueba. La configuración Android de CI incluye launcher TV, identificador de aplicación y deep link de Auth.
+- El workflow de estas PR valida formato sin reescribir fuentes, analiza, prueba y compila APK debug. El APK sigue sin firma de release. El scaffold Android continúa generándose en CI y `pubspec.lock` no está incorporado en `main`.
+- La allowlist de redirects del proyecto Auth alojado no está verificada. La pantalla de recuperación completa, cambio de contraseña desde deep link y pruebas end-to-end de Auth siguen pendientes.
+- CI verde no equivale a validación en teléfono o Android TV físico. No hay evidencia de prueba de reproducción real, navegación D-pad en hardware ni matriz de streams autorizados.
 
 ## Próximas acciones priorizadas
 
-1. Mantener PR #22–#25 sin fusionar hasta que el propietario revise y apruebe cada cambio; verificar nuevamente sus checks al momento de la revisión.
-2. Reconciliar PR #3–#7 en orden de dependencia: documentación/modelo (#3), arquitectura local-first (#4), migración y RLS (#5), bootstrap opcional (#6), autenticación (#7). Resolver conflictos actualizando ramas contra la base actual sin pisar cambios.
-3. Hacer reproducible el build: incorporar un `pubspec.lock` generado por Flutter y decidir/documentar el scaffold Android versionado; mantener versiones de Flutter, Java y SDK explícitas.
-4. Completar pruebas adversariales de M3U/XMLTV, persistencia y operaciones interrumpidas.
-5. Mejorar reproductor y recuperación de red con pruebas de regresión.
-6. Validar Android TV con D-pad y dispositivo/emulador real.
-7. Completar revisión de privacidad, dependencias, licencias y proceso de release firmado por el propietario.
+1. Cerrar las ejecuciones CI actuales de PR #5–#7 y mantener el orden de integración #5 → #6 → #7, sin fusionar sin aprobación.
+2. Crear y probar una migración versionada de privilegios mínimos para las siete tablas; validar grants y políticas RLS con dos usuarios distintos antes de activar sincronización.
+3. Verificar la allowlist de redirects Auth alojada e implementar el flujo completo de recuperación/cambio de contraseña y deep link.
+4. Implementar registro/revocación de dispositivos y API transaccional push/pull, resolución de conflictos, idempotencia y borrado seguro; no subir URLs M3U ni credenciales.
+5. Incorporar `pubspec.lock` y definir el scaffold Android reproducible para builds locales.
+6. Completar pruebas adversariales de M3U/XMLTV, persistencia, reproducción y recuperación de red.
+7. Validar Android TV con D-pad y un dispositivo/emulador; preparar release firmado con credenciales bajo control del propietario.
+8. Completar revisión de privacidad, dependencias, licencias, política de datos y procedimiento de publicación.
 
 ## Reglas de aceptación
 
