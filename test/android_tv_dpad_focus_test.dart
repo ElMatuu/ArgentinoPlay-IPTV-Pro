@@ -14,17 +14,17 @@ void main() {
             ),
             focusColor: const Color(0xFF16A085).withValues(alpha: 0.22),
           ),
-          home: Scaffold(
+          home: const Scaffold(
             body: FocusTraversalGroup(
               child: Column(
                 children: [
                   ListTile(
                     autofocus: true,
-                    title: const Text('Canal Uno'),
+                    title: Text('Canal Uno'),
                     onTap: _noop,
                   ),
                   ListTile(
-                    title: const Text('Canal Dos'),
+                    title: Text('Canal Dos'),
                     onTap: _noop,
                   ),
                 ],
