@@ -20,9 +20,13 @@ class _AccountScreenState extends State<AccountScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _displayName = TextEditingController();
+  final _newPassword = TextEditingController();
+  final _confirmPassword = TextEditingController();
+  final _recoveryFormKey = GlobalKey<FormState>();
   late final SupabaseAuthService? _auth;
   StreamSubscription<AuthState>? _authSubscription;
   bool _creatingAccount = false;
+  bool _recoveryMode = false;
   bool _obscurePassword = true;
   bool _busy = false;
   String? _message;
@@ -32,8 +36,15 @@ class _AccountScreenState extends State<AccountScreen> {
   void initState() {
     super.initState();
     _auth = SupabaseBootstrap.isConfigured ? SupabaseAuthService() : null;
-    _authSubscription = _auth?.authStateChanges.listen((_) {
-      if (mounted) setState(() {});
+    _authSubscription = _auth?.authStateChanges.listen((state) {
+      if (!mounted) return;
+      setState(() {
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          _recoveryMode = true;
+        } else if (state.event == AuthChangeEvent.signedOut) {
+          _recoveryMode = false;
+        }
+      });
     });
   }
 
@@ -42,6 +53,8 @@ class _AccountScreenState extends State<AccountScreen> {
     _email.dispose();
     _password.dispose();
     _displayName.dispose();
+    _newPassword.dispose();
+    _confirmPassword.dispose();
     unawaited(_authSubscription?.cancel());
     super.dispose();
   }
@@ -99,6 +112,87 @@ class _AccountScreenState extends State<AccountScreen> {
         setState(() {
           _message =
               'No se pudo completar la operación. Revisá la conexión e intentá nuevamente.';
+          _messageIsError = true;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _requestPasswordRecovery() async {
+    final auth = _auth;
+    if (auth == null || _busy) return;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      await auth.sendPasswordRecovery(
+        email: _email.text,
+        redirectTo: 'io.supabase.argentinoplay://login-callback',
+      );
+      if (mounted) {
+        setState(() {
+          _message =
+              'Si el correo está registrado, vas a recibir un enlace para recuperar la contraseña.';
+          _messageIsError = false;
+        });
+      }
+    } on AuthInputException catch (error) {
+      if (mounted) {
+        setState(() {
+          _message = error.message;
+          _messageIsError = true;
+        });
+      }
+    } on AuthException {
+      if (mounted) {
+        setState(() {
+          _message =
+              'No se pudo enviar el enlace. Revisá el correo e intentá nuevamente.';
+          _messageIsError = true;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _updateRecoveredPassword() async {
+    final auth = _auth;
+    if (auth == null ||
+        _busy ||
+        !_recoveryFormKey.currentState!.validate()) {
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      await auth.updatePassword(_newPassword.text);
+      if (!mounted) return;
+      setState(() {
+        _recoveryMode = false;
+        _newPassword.clear();
+        _confirmPassword.clear();
+        _password.clear();
+        _message = 'Contraseña actualizada correctamente.';
+        _messageIsError = false;
+      });
+    } on AuthInputException catch (error) {
+      if (mounted) {
+        setState(() {
+          _message = error.message;
+          _messageIsError = true;
+        });
+      }
+    } on AuthException {
+      if (mounted) {
+        setState(() {
+          _message =
+              'El enlace puede haber vencido. Solicitá uno nuevo e intentá otra vez.';
           _messageIsError = true;
         });
       }
@@ -166,6 +260,60 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Text(
                     'La conexión con la nube todavía no está configurada en esta compilación. Podés seguir usando el reproductor localmente.',
                     textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            else if (_recoveryMode)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Form(
+                    key: _recoveryFormKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Elegí una contraseña nueva',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _newPassword,
+                          obscureText: true,
+                          autofillHints: const [AutofillHints.newPassword],
+                          decoration: const InputDecoration(
+                            labelText: 'Nueva contraseña',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if ((value ?? '').length < 8) {
+                              return 'Usá al menos 8 caracteres.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _confirmPassword,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Confirmar contraseña',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value != _newPassword.text) {
+                              return 'Las contraseñas no coinciden.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _busy ? null : _updateRecoveredPassword,
+                          child: const Text('Guardar contraseña nueva'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )
@@ -303,6 +451,13 @@ class _AccountScreenState extends State<AccountScreen> {
                                       : 'Iniciar sesión',
                                 ),
                         ),
+                        if (!_creatingAccount) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: _busy ? null : _requestPasswordRecovery,
+                            child: const Text('Olvidé mi contraseña'),
+                          ),
+                        ],
                       ],
                     ),
                   ),
