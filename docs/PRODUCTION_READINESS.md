@@ -7,8 +7,8 @@
 - Post-merge GitHub Actions run #178 completed successfully: Android scaffold generation/configuration, Dart formatting, static analysis, automated tests, debug APK build and artifact upload.
 - The merged Flutter client includes M3U/M3U8 and XMLTV parsing, local playlist/guide persistence, multi-playlist management, favorites/search/guide UI, player startup/retry race protection, bounded seeking and isolated remote-key mapping tests.
 - The complete Flutter-generated `android/` platform scaffold is committed on the dedicated Android scaffold branch in PR #40, including Gradle wrapper files, manifest/resources and Kotlin entry point.
-- Latest end-to-end clean-clone verification passed on GitHub Actions run #42668007279 for commit `09aa89c339dea58a661735cb484fe284b3ddde16`: formatting, static analysis, all automated tests, Android build, committed-scaffold verification from a clean clone, and debug APK upload succeeded.
-- Latest debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13697902825`, SHA-256 `d11f768234cb3d9f558fde6f6ad1e9b1525253d26d1e0cde97cd0cde798238e4`, approximately 83.7 MB). This is a CI debug artifact, not a signed release.
+- Latest end-to-end clean-clone verification passed on GitHub Actions run #42680513217 for commit `eaae828ce3319bf81a5974859b318ae4db2a9f02`. Formatting, static analysis, all automated tests, Android build, committed-scaffold verification from a clean clone, and debug APK upload all completed successfully.
+- Verified debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13703222217`, 83,708,787 bytes; approximately 83.7 MB). This is a CI debug artifact, not a signed release.
 
 ## What a green CI run proves — and what it does not
 
