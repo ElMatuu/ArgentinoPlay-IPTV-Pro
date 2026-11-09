@@ -6,7 +6,9 @@
 - Merge commit: `cbe7821302af21bf52ae854d92ffb8af0761bd10`.
 - Post-merge GitHub Actions run #178 completed successfully: Android scaffold generation/configuration, Dart formatting, static analysis, automated tests, debug APK build and artifact upload.
 - The merged Flutter client includes M3U/M3U8 and XMLTV parsing, local playlist/guide persistence, multi-playlist management, favorites/search/guide UI, player startup/retry race protection, bounded seeking and isolated remote-key mapping tests.
-- Android TV manifest configuration is currently applied to a generated scaffold during CI. The generated `android/` directory is not committed as a maintained platform project.
+- The complete Flutter-generated `android/` platform scaffold is committed on the dedicated Android scaffold branch in PR #40, including Gradle wrapper files, manifest/resources and Kotlin entry point.
+- Clean-clone verification passed on GitHub Actions run #42665404448 (commit `08ce0c9d5e45645a5073ea8a628a1e7b9b438f15`): dependencies restored, committed Android files verified, and a debug APK rebuilt from the clean clone.
+- Verified debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13697066335`, SHA-256 `0905711aa7350fddda1674f77070c0872f37870e08e2085722869307960652db`). This is a CI debug artifact, not a signed release.
 
 ## What a green CI run proves — and what it does not
 
@@ -15,12 +17,15 @@ CI verifies source formatting, static analysis, automated tests, Android project
 ## Remaining work, kept separate by area
 
 ### A. Android project ownership
-1. Review the exact Flutter-generated Android scaffold against the pinned Flutter toolchain.
-2. Commit the complete, maintainable Android platform directory, including the Gradle wrapper JAR and scripts, Gradle configuration, manifest, resources and Kotlin entry point.
-3. Keep machine-local files (for example `local.properties`), signing keys and credentials out of source control.
-4. Verify a clean checkout can build without generating missing project files.
+<badge>Completed on PR #40 branch; merge still pending</badge>
 
-**Exit criterion:** a clean clone contains a complete Android project and builds the debug APK without `flutter create` mutating or generating tracked platform files.
+1. Generated and committed the Android platform directory with the pinned Flutter 3.47.9 toolchain, Gradle wrapper JAR/scripts, Gradle configuration, manifest, resources and Kotlin entry point.
+2. Verified `namespace`, `applicationId` and Kotlin package are consistently `com.argentinoplay.app`.
+3. Added Internet permission, Android TV Leanback launcher declaration and optional touchscreen feature.
+4. Kept `android/local.properties`, IDE files and signing credentials out of the committed scaffold.
+5. Passed a clean Git clone build without running `flutter create` in the clone; debug APK artifact uploaded by CI.
+
+**Exit criterion:** met by successful clean-clone build in run #42665404448. PR #40 remains a draft and must be reviewed before merging; this does not constitute a signed release or physical-device acceptance.
 
 ### B. Android TV interaction
 1. Audit focus ownership so media seeking does not swallow D-pad navigation events.
