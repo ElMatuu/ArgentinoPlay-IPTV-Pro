@@ -39,9 +39,9 @@ Future<void> _pumpHome(WidgetTester tester) async {
 void main() {
   test('M3U parser reads valid HTTP channels and metadata', () {
     const playlist =
-        '#EXTM3U\\n#EXTINF:-1 tvg-logo="https://example.org/logo.png" '
-        'group-title="Noticias",Canal Demo\\n'
-        'https://example.org/live.m3u8\\n';
+        '#EXTM3U\n#EXTINF:-1 tvg-logo="https://example.org/logo.png" '
+        'group-title="Noticias",Canal Demo\n'
+        'https://example.org/live.m3u8\n';
     final channels = parseM3u(playlist);
 
     expect(channels, hasLength(1));
@@ -51,8 +51,8 @@ void main() {
   });
 
   test('M3U parser ignores unsupported schemes and malformed entries', () {
-    const playlist = '#EXTM3U\\n#EXTINF:-1,No válido\\nfile:///etc/passwd\\n'
-        '#EXTINF:-1,Válido\\nhttps://example.org/live.m3u8\\n';
+    const playlist = '#EXTM3U\n#EXTINF:-1,No válido\nfile:///etc/passwd\n'
+        '#EXTINF:-1,Válido\nhttps://example.org/live.m3u8\n';
     final channels = parseM3u(playlist);
 
     expect(channels, hasLength(1));
