@@ -82,23 +82,28 @@ jobs:
 
           gradle = root / "app/build.gradle.kts"
           gradle_source = gradle.read_text(encoding="utf-8")
+          gradle_lines = gradle_source.splitlines()
           for key in ("applicationId", "namespace"):
-              pattern = re.compile(
-                  r'(?m)^(\s*' + key + r'\s*=\s*)"[^"]+"(\s*)$'
-              )
-              gradle_source, count = pattern.subn(
-                  r'\g<1>"com.argentinoplay.app"\g<2>', gradle_source
-              )
-              if count != 1:
-                  sys.exit("::error::Could not set " + key + " exactly once.")
+              matches = [
+                  index for index, line in enumerate(gradle_lines)
+                  if key in line and "=" in line and not line.lstrip().startswith("//")
+              ]
+              if len(matches) != 1:
+                  sys.exit("::error::Could not identify " + key + " exactly once.")
+              index = matches[0]
+              prefix = gradle_lines[index].split(key, 1)[0] + key + " = "
+              gradle_lines[index] = prefix + '"com.argentinoplay.app"'
 
-          gradle_source, count = re.subn(
-              r'(?m)^(\s*compileSdk\s*=\s*)(?:flutter\.compileSdkVersion|\d+)(\s*)$',
-              r'\g<1>36\g<2>',
-              gradle_source,
-          )
-          if count != 1:
-              sys.exit("::error::Could not set compileSdk to 36.")
+          sdk_matches = [
+              index for index, line in enumerate(gradle_lines)
+              if "compileSdk" in line and "=" in line and not line.lstrip().startswith("//")
+          ]
+          if len(sdk_matches) != 1:
+              sys.exit("::error::Could not identify compileSdk exactly once.")
+          sdk_index = sdk_matches[0]
+          sdk_prefix = gradle_lines[sdk_index].split("compileSdk", 1)[0] + "compileSdk = "
+          gradle_lines[sdk_index] = sdk_prefix + "36"
+          gradle_source = "\n".join(gradle_lines) + "\n"
           gradle.write_text(gradle_source, encoding="utf-8")
 
           old = root / "app/src/main/kotlin/com/example/argentino_play/MainActivity.kt"
