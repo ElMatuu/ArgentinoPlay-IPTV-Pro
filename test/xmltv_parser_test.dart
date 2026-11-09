@@ -15,6 +15,11 @@ void main() {
 
     test('rejects invalid dates and malformed values', () {
       expect(parseXmltvTimestamp('20260230120000 +0000'), isNull);
+      expect(parseXmltvTimestamp('20260101120000 +2399'), isNull);
+      expect(parseXmltvTimestamp('20260101120000 +1460'), isNull);
+      expect(parseXmltvTimestamp('20260101120000 +1401'), isNull);
+      expect(parseXmltvTimestamp('20260101120000 +1400'), isNotNull);
+      expect(parseXmltvTimestamp('20260101120000 -1200'), isNotNull);
       expect(parseXmltvTimestamp('not-a-date'), isNull);
     });
   });
