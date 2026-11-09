@@ -13,6 +13,7 @@ class PlaylistManagerScreen extends StatefulWidget {
     required this.activePlaylistId,
     required this.onSelected,
     required this.onReplaced,
+    this.pickPlaylistFile,
   });
 
   final PlaylistLibraryRepository repository;
