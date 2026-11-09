@@ -49,6 +49,8 @@ class ArgentinoPlayApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        // Material controls expose a clear focus overlay for Android TV remotes.
+        focusColor: const Color(0xFF16A085).withValues(alpha: 0.22),
       ),
       home: HomeScreen(
         libraryRepository: libraryRepository,
