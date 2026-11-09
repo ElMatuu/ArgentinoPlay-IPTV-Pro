@@ -183,7 +183,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/argentino-clean
-          git archive HEAD | tar -x -C /tmp/argentino-clean
+          git clone --no-local . /tmp/argentino-clean
           cd /tmp/argentino-clean
           flutter pub get
           git show HEAD:analysis_options.yaml > analysis_options.yaml
