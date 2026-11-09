@@ -37,7 +37,7 @@ A follow-up migration, `20261109021431_tighten_authenticated_table_grants.sql`, 
 
 - Transactional push/pull sync API, conflict resolver, tombstone retention or Edge Functions.
 - Flutter sign-in/sign-up screens and account recovery.
-- Device registration and device-list/revocation UI are being implemented in the Flutter auth PR; hosted RLS and physical-device checks remain pending.
+- Device registration and device-list/revocation UI are implemented on the open Flutter auth PR #7 branch; they are not merged yet. Hosted RLS and physical-device checks remain pending.
 - SQLite local database migration and live synchronization.
 - End-to-end tests with multiple users/devices and cross-user isolation.
 
