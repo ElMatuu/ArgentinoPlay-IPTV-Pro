@@ -26,8 +26,7 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
   @override
   void initState() {
     super.initState();
-    _service =
-        widget.service ??
+    _service = widget.service ??
         DeviceRegistrationService(
           gateway: SupabaseDeviceRegistryGateway(Supabase.instance.client),
           idStore: PreferencesDeviceIdStore(),
@@ -61,7 +60,8 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No se pudieron cargar los dispositivos. Revisá la conexión y los permisos de la cuenta.';
+        _error =
+            'No se pudieron cargar los dispositivos. Revisá la conexión y los permisos de la cuenta.';
       });
     }
   }
@@ -127,14 +127,12 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
 
   String _dateLabel(DateTime value) {
     final local = value.toLocal();
-    final date =
-        local.day.toString().padLeft(2, '0') +
+    final date = local.day.toString().padLeft(2, '0') +
         '/' +
         local.month.toString().padLeft(2, '0') +
         '/' +
         local.year.toString();
-    final time =
-        local.hour.toString().padLeft(2, '0') +
+    final time = local.hour.toString().padLeft(2, '0') +
         ':' +
         local.minute.toString().padLeft(2, '0');
     return date + ' · ' + time;
@@ -205,12 +203,13 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
                   trailing: isCurrent
                       ? const Chip(label: Text('Este equipo'))
                       : isRevoked
-                      ? const Chip(label: Text('Revocado'))
-                      : IconButton(
-                          tooltip: 'Revocar dispositivo',
-                          onPressed: _revoking ? null : () => _revoke(device),
-                          icon: const Icon(Icons.block),
-                        ),
+                          ? const Chip(label: Text('Revocado'))
+                          : IconButton(
+                              tooltip: 'Revocar dispositivo',
+                              onPressed:
+                                  _revoking ? null : () => _revoke(device),
+                              icon: const Icon(Icons.block),
+                            ),
                 );
               }),
             if (_revoking) const LinearProgressIndicator(),
