@@ -76,7 +76,44 @@ jobs:
                   <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
               </intent-filter>"""
           source = source[:match.end()] + tv_launcher + source[match.end():]
+
+          application_pattern = re.compile(r'<application\\b[^>]*>')
+          application_match = application_pattern.search(source)
+          if application_match is None or source.count('<application') != 1:
+              print("::error::No se encontró un bloque application único.")
+              sys.exit(1)
+          application_tag = application_match.group(0)
+          icon_attribute = 'android:icon="@mipmap/ic_launcher"'
+          if application_tag.count(icon_attribute) != 1 or "android:banner=" in application_tag:
+              print("::error::No se encontró el icono Android esperado o ya existe un banner.")
+              sys.exit(1)
+          updated_application_tag = application_tag.replace(
+              icon_attribute,
+              icon_attribute + ' android:banner="@drawable/tv_banner"',
+              1,
+          )
+          source = source[:application_match.start()] + updated_application_tag + source[application_match.end():]
           manifest.write_text(source, encoding="utf-8")
+
+          banner = Path("android/app/src/main/res/drawable/tv_banner.xml")
+          banner.parent.mkdir(parents=True, exist_ok=True)
+          banner.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="320dp"
+              android:height="180dp"
+              android:viewportWidth="320"
+              android:viewportHeight="180">
+              <path
+                  android:fillColor="#101827"
+                  android:pathData="M0,0h320v180h-320z" />
+              <path
+                  android:fillColor="#1E88E5"
+                  android:pathData="M100,42h120a16,16 0,0 1,16 16v64a16,16 0,0 1,-16 16h-120a16,16 0,0 1,-16 -16v-64a16,16 0,0 1,16 -16z" />
+              <path
+                  android:fillColor="#FFFFFF"
+                  android:pathData="M139,70l52,25 -52,25z" />
+          </vector>
+          """, encoding="utf-8")
 
           gradle = Path("android/app/build.gradle.kts")
           gradle_source = gradle.read_text(encoding="utf-8")
@@ -88,7 +125,25 @@ jobs:
               gradle_source.replace(placeholder, 'applicationId = "com.argentinoplay.app"', 1),
               encoding="utf-8",
           )
-          print("Manifiesto Android configurado: Internet, launcher móvil y Android TV.")
+          import xml.etree.ElementTree as ET
+
+          android_namespace = "{http://schemas.android.com/apk/res/android}"
+          manifest_root = ET.parse(manifest).getroot()
+          application = manifest_root.find("application")
+          if application is None or application.get(android_namespace + "banner") != "@drawable/tv_banner":
+              print("::error::El banner de Android TV no quedó declarado en el manifiesto.")
+              sys.exit(1)
+          ET.parse(banner)
+          if not any(
+              category.get(android_namespace + "name") == "android.intent.category.LEANBACK_LAUNCHER"
+              for intent_filter in manifest_root.findall(".//intent-filter")
+              for category in intent_filter.findall("category")
+          ):
+              print("::error::Falta el launcher de Android TV.")
+              sys.exit(1)
+
+          print("Manifiesto Android configurado: Internet, launcher móvil, launcher TV y banner TV.")
+          print("Banner Android TV validado como recurso XML.")
           print("Application ID configurado: com.argentinoplay.app")
 
 
