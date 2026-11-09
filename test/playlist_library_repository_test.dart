@@ -57,7 +57,7 @@ void main() {
       final item = await repository.createPlaylist(
         name: 'Mi lista',
         source:
-            '#EXTM3U\\n#EXTINF:-1,Canal antiguo\\nhttps://example.org/old.m3u8\\n',
+            '#EXTM3U\n#EXTINF:-1,Canal antiguo\nhttps://example.org/old.m3u8\n',
         channelCount: 1,
         id: 'stable-list',
       );
@@ -66,7 +66,7 @@ void main() {
       final updated = await repository.replacePlaylistSource(
         id: item.id,
         source:
-            '#EXTM3U\\n#EXTINF:-1,Canal nuevo\\nhttps://example.org/new.m3u8\\n',
+            '#EXTM3U\n#EXTINF:-1,Canal nuevo\nhttps://example.org/new.m3u8\n',
         channelCount: 1,
       );
 
