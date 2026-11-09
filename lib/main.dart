@@ -741,7 +741,7 @@ class _EpgScreenState extends State<EpgScreen> {
                               subtitle: Text(
                                 '${_formatTime(programme.start)}–'
                                 '${_formatTime(programme.end)}'
-                                '${programme.description.isEmpty ? '' : '\\n${programme.description}'}',
+                                '${programme.description.isEmpty ? '' : '\n${programme.description}'}',
                               ),
                               isThreeLine: programme.description.isNotEmpty,
                             );
