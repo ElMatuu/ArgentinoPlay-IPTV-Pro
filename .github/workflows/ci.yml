@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, 'rebuild/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'infra/**', 'feat/**']
   workflow_dispatch:
 
 permissions:
@@ -90,6 +90,48 @@ jobs:
           )
           print("Manifiesto Android configurado: Internet, launcher móvil y Android TV.")
           print("Application ID configurado: com.argentinoplay.app")
+
+      - name: Register Supabase auth deep link
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          if not manifest.is_file():
+              raise SystemExit("::error::No se generó AndroidManifest.xml")
+          android = "{http://schemas.android.com/apk/res/android}"
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          application = root.find("application")
+          if application is None:
+              raise SystemExit("::error::AndroidManifest.xml no contiene application")
+          activities = [node for node in application.findall("activity")
+                        if node.get(android + "name", "").endswith("MainActivity")]
+          if len(activities) != 1:
+              raise SystemExit("::error::No se encontró una única MainActivity")
+          activity = activities[0]
+          for intent_filter in activity.findall("intent-filter"):
+              actions = {item.get(android + "name") for item in intent_filter.findall("action")}
+              if "android.intent.action.VIEW" in actions:
+                  for data in intent_filter.findall("data"):
+                      if (data.get(android + "scheme") == "io.supabase.argentinoplay"
+                          and data.get(android + "host") == "login-callback"):
+                          print("Deep link Supabase ya estaba configurado.")
+                          raise SystemExit(0)
+          intent_filter = ET.SubElement(activity, "intent-filter")
+          ET.SubElement(intent_filter, "action", {android + "name": "android.intent.action.VIEW"})
+          ET.SubElement(intent_filter, "category", {android + "name": "android.intent.category.DEFAULT"})
+          ET.SubElement(intent_filter, "category", {android + "name": "android.intent.category.BROWSABLE"})
+          ET.SubElement(intent_filter, "data", {
+              android + "scheme": "io.supabase.argentinoplay",
+              android + "host": "login-callback",
+          })
+          ET.indent(tree, space="    ")
+          tree.write(manifest, encoding="utf-8", xml_declaration=True)
+          print("Deep link Supabase registrado en AndroidManifest.xml")
+          PY
 
 
       - name: Configure and verify Android API 36
@@ -194,6 +236,14 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Block privileged Supabase credentials in client source
+        shell: bash
+        run: |
+          if grep -RIlE 'sb_secret_|service_role|SUPABASE_SECRET_KEY|SUPABASE_ACCESS_TOKEN|SUPABASE_DB_PASSWORD' lib android; then
+            echo "::error::Privileged Supabase credentials or identifiers must not be present in client source."
+            exit 1
+          fi
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -204,70 +254,21 @@ jobs:
           java -version
           echo "Android SDK: ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-not-set}}"
 
-      - name: Validate Dart formatting (no silent workspace rewrites)
+      - name: Generate exact Dart formatting patch
         id: format
         run: |
           set -euo pipefail
-          echo "Validando formato con dart format --set-exit-if-changed --output=none."
-          if dart format --set-exit-if-changed --output=none lib test; then
-            echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
-            exit 0
-          fi
-          echo "Hay archivos Dart que no cumplen 'dart format'."
           dart format lib test
-          git --no-pager diff -- lib test | sed -e 's/ /·/g' -e 's/	/→/g' > /tmp/format.diff || true
-          size="$(wc -c < /tmp/format.diff)"
-          echo "Diff de formato (espacios marcados con punto medio): ${size} bytes."
-          split -b 850 -d /tmp/format.diff /tmp/fmt_
-          exit 1
+          git diff --binary -- lib test > /tmp/dart-format.patch
+          echo "Generated formatting patch ($(wc -c < /tmp/dart-format.patch) bytes)."
 
-      - name: Publish format diff annotations 1-10
-        if: always() && steps.format.outcome == 'failure'
-        run: |
-          count=0
-          for chunk in /tmp/fmt_*; do
-            count=$((count+1))
-            if [[ $count -le 10 ]]; then
-              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
-              echo "::error title=Format diff ${count}::${msg}"
-            fi
-          done
-
-      - name: Publish format diff annotations 11-20
-        if: always() && steps.format.outcome == 'failure'
-        run: |
-          count=0
-          for chunk in /tmp/fmt_*; do
-            count=$((count+1))
-            if [[ $count -ge 11 && $count -le 20 ]]; then
-              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
-              echo "::error title=Format diff ${count}::${msg}"
-            fi
-          done
-
-      - name: Publish format diff annotations 21-30
-        if: always() && steps.format.outcome == 'failure'
-        run: |
-          count=0
-          for chunk in /tmp/fmt_*; do
-            count=$((count+1))
-            if [[ $count -ge 21 && $count -le 30 ]]; then
-              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
-              echo "::error title=Format diff ${count}::${msg}"
-            fi
-          done
-
-      - name: Publish format diff annotations 31-40
-        if: always() && steps.format.outcome == 'failure'
-        run: |
-          count=0
-          for chunk in /tmp/fmt_*; do
-            count=$((count+1))
-            if [[ $count -ge 31 && $count -le 40 ]]; then
-              msg="$(cat "${chunk}" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g')"
-              echo "::error title=Format diff ${count}::${msg}"
-            fi
-          done
+      - name: Upload Dart formatting patch for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: dart-format-patch
+          path: /tmp/dart-format.patch
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
@@ -307,8 +308,14 @@ jobs:
 
       - name: Build debug APK (full Gradle diagnostics)
         id: build
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          if flutter build apk --debug > /tmp/build.out 2>&1; then
+          if flutter build apk --debug \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            > /tmp/build.out 2>&1; then
             cat /tmp/build.out
           else
             code=$?
