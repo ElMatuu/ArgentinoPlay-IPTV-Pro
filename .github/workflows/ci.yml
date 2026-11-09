@@ -35,6 +35,68 @@ jobs:
       - name: Generate Android platform scaffolding
         run: flutter create --platforms=android --project-name argentino_play .
 
+      - name: Register Supabase auth deep link
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          if not manifest.is_file():
+              raise SystemExit("::error::No se generó AndroidManifest.xml")
+
+          android = "{http://schemas.android.com/apk/res/android}"
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          application = root.find("application")
+          if application is None:
+              raise SystemExit("::error::AndroidManifest.xml no contiene application")
+
+          activities = [
+              node for node in application.findall("activity")
+              if node.get(android + "name", "").endswith("MainActivity")
+          ]
+          if len(activities) != 1:
+              raise SystemExit(
+                  "::error::Se esperaba una única MainActivity para registrar "
+                  f"el deep link; encontradas: {len(activities)}"
+              )
+
+          activity = activities[0]
+          for intent_filter in activity.findall("intent-filter"):
+              actions = {
+                  item.get(android + "name")
+                  for item in intent_filter.findall("action")
+              }
+              if "android.intent.action.VIEW" not in actions:
+                  continue
+              for data in intent_filter.findall("data"):
+                  if (
+                      data.get(android + "scheme") == "io.supabase.argentinoplay"
+                      and data.get(android + "host") == "login-callback"
+                  ):
+                      print("Deep link Supabase ya estaba configurado.")
+                      raise SystemExit(0)
+
+          intent_filter = ET.SubElement(activity, "intent-filter")
+          ET.SubElement(intent_filter, "action", {android + "name": "android.intent.action.VIEW"})
+          ET.SubElement(intent_filter, "category", {android + "name": "android.intent.category.DEFAULT"})
+          ET.SubElement(intent_filter, "category", {android + "name": "android.intent.category.BROWSABLE"})
+          ET.SubElement(
+              intent_filter,
+              "data",
+              {
+                  android + "scheme": "io.supabase.argentinoplay",
+                  android + "host": "login-callback",
+              },
+          )
+          ET.indent(tree, space="    ")
+          tree.write(manifest, encoding="utf-8", xml_declaration=True)
+          print("Deep link Supabase registrado en AndroidManifest.xml")
+          PY
+
       - name: Configure and verify Android API 36
         id: android_sdk
         shell: bash
@@ -139,13 +201,9 @@ jobs:
           java -version
           echo "Android SDK: ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-not-set}}"
 
-      - name: Format Dart sources in CI workspace
+      - name: Validate Dart formatting without rewriting sources
         id: format
-        run: |
-          set -euo pipefail
-          echo "Aplicando dart format a lib/ y test/ antes del análisis y las pruebas."
-          dart format lib test
-          echo "Formato aplicado. Los archivos que hayan cambiado se informan arriba; no se modifican los archivos del repositorio remoto."
+        run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
