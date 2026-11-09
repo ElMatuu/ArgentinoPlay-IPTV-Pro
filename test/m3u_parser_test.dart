@@ -84,10 +84,12 @@ void main() {
 
     test('parses a 5,001-entry playlist without dropping valid channels', () {
       const channelCount = 5001;
-      final source = StringBuffer('#EXTM3U\\n');
+      final source = StringBuffer('#EXTM3U\n');
       for (var index = 0; index < channelCount; index++) {
         source
-          ..writeln(\n            '#EXTINF:-1 tvg-id="channel.$index" group-title="Argentina",Canal $index',\n          )
+          ..writeln(
+            '#EXTINF:-1 tvg-id="channel.$index" group-title="Argentina",Canal $index',
+          )
           ..writeln('https://streams.example.org/$index/index.m3u8');
       }
 
