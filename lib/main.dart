@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
 import 'services/epg_matcher.dart';
+import 'services/epg_programme_search.dart';
 import 'services/epg_schedule_index.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
@@ -638,7 +639,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class EpgScreen extends StatelessWidget {
+class EpgScreen extends StatefulWidget {
   const EpgScreen({
     super.key,
     required this.channel,
@@ -649,37 +650,105 @@ class EpgScreen extends StatelessWidget {
   final XmltvGuide guide;
 
   @override
+  State<EpgScreen> createState() => _EpgScreenState();
+}
+
+class _EpgScreenState extends State<EpgScreen> {
+  String _query = '';
+  String _category = '';
+
+  @override
   Widget build(BuildContext context) {
-    final matchedChannel = matchEpgChannel(channel, guide);
-    final programmes = matchedChannel == null
+    final matchedChannel = matchEpgChannel(widget.channel, widget.guide);
+    final schedule = matchedChannel == null
         ? const <EpgProgramme>[]
-        : guide.programmesFor(matchedChannel.id);
+        : widget.guide.programmesFor(matchedChannel.id);
+    final categories = EpgProgrammeSearch.categories(schedule);
+    final programmes = EpgProgrammeSearch.filter(
+      schedule,
+      query: _query,
+      category: _category,
+    );
+
     return Scaffold(
-      appBar: AppBar(title: Text('Programación · ${channel.name}')),
-      body: programmes.isEmpty
+      appBar: AppBar(
+        title: Text('Programación · ${widget.channel.name}'),
+      ),
+      body: schedule.isEmpty
           ? const Center(
               child: Text('No hay programas disponibles para este canal.'),
             )
-          : ListView.separated(
-              itemCount: programmes.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final programme = programmes[index];
-                final now = programme.isOnAirAt(DateTime.now());
-                return ListTile(
-                  leading: Icon(
-                    now ? Icons.play_circle_fill : Icons.schedule,
-                    color: now ? Theme.of(context).colorScheme.primary : null,
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Buscar programa, descripción o categoría...',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) => setState(() => _query = value),
                   ),
-                  title: Text(programme.title),
-                  subtitle: Text(
-                    '${_formatTime(programme.start)}–'
-                    '${_formatTime(programme.end)}'
-                    '${programme.description.isEmpty ? '' : '\n${programme.description}'}',
+                ),
+                if (categories.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _category.isEmpty ? null : _category,
+                      decoration: const InputDecoration(
+                        labelText: 'Filtrar por categoría',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.filter_list),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: '',
+                          child: Text('Todas las categorías'),
+                        ),
+                        ...categories.map(
+                          (category) => DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(category),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _category = value ?? ''),
+                    ),
                   ),
-                  isThreeLine: programme.description.isNotEmpty,
-                );
-              },
+                Expanded(
+                  child: programmes.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No hay programas que coincidan con la búsqueda.',
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: programmes.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final programme = programmes[index];
+                            final now = programme.isOnAirAt(DateTime.now());
+                            return ListTile(
+                              leading: Icon(
+                                now ? Icons.play_circle_fill : Icons.schedule,
+                                color: now
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                              ),
+                              title: Text(programme.title),
+                              subtitle: Text(
+                                '${_formatTime(programme.start)}–'
+                                '${_formatTime(programme.end)}'
+                                '${programme.description.isEmpty ? '' : '\n${programme.description}'}',
+                              ),
+                              isThreeLine: programme.description.isNotEmpty,
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
     );
   }
