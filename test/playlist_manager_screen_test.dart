@@ -305,4 +305,58 @@ void main() {
     expect(selectedSource, contains('Canal Noticias'));
     expect(await repository.activePlaylistId(), 'news');
   });
+
+  testWidgets('does not replace a playlist when the selected file is invalid',
+      (tester) async {
+    const invalid = 'not an M3U playlist';
+    await openManager(
+      tester,
+      onSelected: (_, __) {},
+      activePlaylistId: 'news',
+      pickPlaylistFile: () async => FilePickerResult([
+        PlatformFile(
+          name: 'invalid.m3u',
+          size: invalid.length,
+          bytes: Uint8List.fromList(invalid.codeUnits),
+        ),
+      ]),
+    );
+
+    await tester.tap(find.byTooltip('Acciones de Noticias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reemplazar M3U/M3U8'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('No se encontraron canales'), findsOneWidget);
+    expect(await repository.loadPlaylist('news'), contains('Canal Noticias'));
+  });
+
+  testWidgets('does not notify active player when replacing an inactive list',
+      (tester) async {
+    const replacement =
+        '#EXTM3U\\n#EXTINF:-1,Canal Nuevo\\nhttps://example.org/new.m3u8\\n';
+    var replacementNotifications = 0;
+    await openManager(
+      tester,
+      onSelected: (_, __) {},
+      activePlaylistId: 'another-list',
+      pickPlaylistFile: () async => FilePickerResult([
+        PlatformFile(
+          name: 'replacement.m3u8',
+          size: replacement.length,
+          bytes: Uint8List.fromList(replacement.codeUnits),
+        ),
+      ]),
+      onReplaced: (_, __) => replacementNotifications++,
+    );
+
+    await tester.tap(find.byTooltip('Acciones de Noticias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reemplazar M3U/M3U8'));
+    await tester.pumpAndSettle();
+
+    expect(replacementNotifications, 0);
+    expect(await repository.loadPlaylist('news'), contains('Canal Nuevo'));
+  });
+
 }
