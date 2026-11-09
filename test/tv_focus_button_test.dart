@@ -9,9 +9,9 @@ void main() {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: const Scaffold(
+      home: Scaffold(
         body: FocusTraversalGroup(
-          child: Column(
+          child: const Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TvFocusButton(
