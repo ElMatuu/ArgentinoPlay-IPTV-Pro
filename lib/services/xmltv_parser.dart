@@ -87,7 +87,9 @@ DateTime? parseXmltvTimestamp(String value) {
     if (sign != null) {
       final offsetHours = int.parse(match.group(8)!);
       final offsetMinutes = int.parse(match.group(9)!);
-      if (offsetHours > 23 || offsetMinutes > 59) {
+      if (offsetHours > 14 ||
+          offsetMinutes > 59 ||
+          (offsetHours == 14 && offsetMinutes != 0)) {
         return null;
       }
       final offset = Duration(hours: offsetHours, minutes: offsetMinutes);
