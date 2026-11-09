@@ -1,5 +1,48 @@
 # Auditoría y backlog de implementación — ArgentinoPlay IPTV Pro
 
+**Actualización de estado:** 2026-11-09  
+**Rama base de referencia:** `main`  
+**Commit de main verificado:** `cc2df1e91e237b8d5fd8bdf08d8f74570cb4127b`
+
+> Esta actualización complementa la auditoría histórica que sigue debajo. Los estados de PR/CI cambian con cada commit; no deben interpretarse como integración en `main` mientras no exista un merge aprobado.
+
+## Estado actual verificado
+
+- La rama `main` tiene una ejecución de CI exitosa (#21, run `42534462677`), pero no contiene todavía las funcionalidades de las PR #22–#25.
+- PR #22: búsqueda de canales por país, idioma y metadatos EPG. CI exitoso en el commit `3baf96180d327086e26932fcf72905358a2e3623`.
+- PR #23: visualización segura de logos M3U. CI exitoso en `a8a8e5e1bebfb01297e2f37b1417e8685fb4e721`.
+- PR #24: búsqueda y filtros de programas EPG. CI exitoso en `cd84d5e54ed1f210ef1f3125c55381d8b934ff81`; incluye corrección de salto de línea en descripciones.
+- PR #25: reemplazo seguro de fuentes de listas existentes. CI exitoso en `2aed2f256d6dd4dfbaed675669bf5d559e7205df`.
+- PR #3–#7 y PR #9 siguen abiertas. Las PR #6 y #7 tienen conflictos/estado de base no limpio informado por GitHub y deben reconciliarse antes de revisión final. PR #7 depende de PR #6; PR #6 depende de la configuración y decisiones de PR #5. No fusionarlas fuera de orden.
+- Issue #1 sigue abierto como registro principal de aceptación y fases.
+- El workflow de CI ejecuta formato, análisis estático, pruebas, build Android debug y publicación de artefacto. El APK de CI es de depuración, no un APK/AAB release firmado.
+- El directorio Android se genera en CI y `pubspec.lock` no estaba presente en `main` en esta revisión; ambos son pendientes de reproducibilidad.
+- CI verde no equivale a validación en un teléfono o Android TV físico. La prueba real de reproducción, navegación D-pad y compatibilidad de streams autorizados sigue pendiente en hardware.
+- La integración Supabase no debe darse por completa por la existencia de PRs o secretos. La aplicación debe continuar funcionando localmente sin configuración cloud. Solo URL del proyecto y publishable key pueden llegar al cliente; nunca claves secret/service-role, tokens administrativos o contraseñas.
+
+## Próximas acciones priorizadas
+
+1. Mantener PR #22–#25 sin fusionar hasta que el propietario revise y apruebe cada cambio; verificar nuevamente sus checks al momento de la revisión.
+2. Reconciliar PR #3–#7 en orden de dependencia: documentación/modelo (#3), arquitectura local-first (#4), migración y RLS (#5), bootstrap opcional (#6), autenticación (#7). Resolver conflictos actualizando ramas contra la base actual sin pisar cambios.
+3. Hacer reproducible el build: incorporar un `pubspec.lock` generado por Flutter y decidir/documentar el scaffold Android versionado; mantener versiones de Flutter, Java y SDK explícitas.
+4. Completar pruebas adversariales de M3U/XMLTV, persistencia y operaciones interrumpidas.
+5. Mejorar reproductor y recuperación de red con pruebas de regresión.
+6. Validar Android TV con D-pad y dispositivo/emulador real.
+7. Completar revisión de privacidad, dependencias, licencias y proceso de release firmado por el propietario.
+
+## Reglas de aceptación
+
+- No declarar una función terminada por estar documentada o por existir en una rama: debe estar integrada, probada y documentada.
+- No ocultar pruebas fallidas, desactivar tests ni sustituir pruebas útiles por pruebas triviales.
+- No hacer push directo a `main`, auto-merge ni publicar releases sin aprobación explícita.
+- No usar streams, logos ni guías sin autorización verificable.
+- Separar claramente resultados CI, pruebas de emulador y pruebas en hardware real.
+- Cada PR debe indicar alcance, archivos modificados, riesgos, comandos/checks ejecutados y limitaciones.
+
+---
+
+## Registro histórico de auditoría — 2026-11-08
+
 **Corte de auditoría:** 2026-11-08  
 **Rama auditada:** `main`  
 **Commit base:** `74b9deba1a82fb112bf21a797043317a8ea02e5c`
