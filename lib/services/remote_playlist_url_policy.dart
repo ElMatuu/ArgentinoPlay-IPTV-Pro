@@ -9,8 +9,7 @@ class RemotePlaylistUrlDecision {
   const RemotePlaylistUrlDecision.allow()
       : this._(true, 'HTTPS URL passed the static URL policy.');
 
-  const RemotePlaylistUrlDecision.reject(String reason)
-      : this._(false, reason);
+  const RemotePlaylistUrlDecision.reject(String reason) : this._(false, reason);
 
   final bool allowed;
   final String reason;
@@ -24,7 +23,8 @@ RemotePlaylistUrlDecision validateRemotePlaylistUrl(String input) {
     return const RemotePlaylistUrlDecision.reject('URL is malformed.');
   }
   if (uri.scheme.toLowerCase() != 'https') {
-    return const RemotePlaylistUrlDecision.reject('Only HTTPS URLs are allowed.');
+    return const RemotePlaylistUrlDecision.reject(
+        'Only HTTPS URLs are allowed.');
   }
   if (uri.userInfo.isNotEmpty) {
     return const RemotePlaylistUrlDecision.reject(
@@ -33,8 +33,9 @@ RemotePlaylistUrlDecision validateRemotePlaylistUrl(String input) {
   }
 
   final host = uri.host.toLowerCase();
-  final normalizedHost =
-      host.startsWith('[') && host.endsWith(']') ? host.substring(1, host.length - 1) : host;
+  final normalizedHost = host.startsWith('[') && host.endsWith(']')
+      ? host.substring(1, host.length - 1)
+      : host;
   final address = InternetAddress.tryParse(normalizedHost);
   if (address == null &&
       (normalizedHost.isEmpty ||
