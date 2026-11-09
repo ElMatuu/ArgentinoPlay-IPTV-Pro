@@ -1,7 +1,7 @@
 name: Flutter CI
 on:
   push:
-    branches: [main]
+    branches: [main, 'rebuild/**']
   pull_request:
     branches: [main, 'infra/**', 'feat/**']
   workflow_dispatch:
@@ -30,10 +30,66 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.9'
           cache: true
 
       - name: Generate Android platform scaffolding
         run: flutter create --platforms=android --project-name argentino_play .
+
+      - name: Configure Android app identity and TV launcher support
+        shell: python
+        run: |
+          from pathlib import Path
+          import sys
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          source = manifest.read_text(encoding="utf-8")
+          expected = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+
+          if source.count(expected) != 1:
+              print("::error::No se reconoce el manifiesto Android generado por Flutter.")
+              sys.exit(1)
+
+          source = source.replace(
+              expected,
+              expected + """
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-feature android:name="android.software.leanback" android:required="false" />
+              <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+              """,
+              1,
+          )
+
+          source = source.replace('android:label="argentino_play"', 'android:label="ArgentinoPlay"', 1)
+          import re
+
+          launcher_pattern = re.compile(
+              r'(<category\s+android:name="android.intent.category.LAUNCHER"\s*/>\s*</intent-filter>)'
+          )
+          match = launcher_pattern.search(source)
+          if match is None or "android.intent.category.LEANBACK_LAUNCHER" in source:
+              print("::error::No se encontró un intent-filter móvil único para ampliar.")
+              sys.exit(1)
+          tv_launcher = """
+              <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+              </intent-filter>"""
+          source = source[:match.end()] + tv_launcher + source[match.end():]
+          manifest.write_text(source, encoding="utf-8")
+
+          gradle = Path("android/app/build.gradle.kts")
+          gradle_source = gradle.read_text(encoding="utf-8")
+          placeholder = 'applicationId = "com.example.argentino_play"'
+          if gradle_source.count(placeholder) != 1:
+              print("::error::No se encontró el applicationId Flutter esperado.")
+              sys.exit(1)
+          gradle.write_text(
+              gradle_source.replace(placeholder, 'applicationId = "com.argentinoplay.app"', 1),
+              encoding="utf-8",
+          )
+          print("Manifiesto Android configurado: Internet, launcher móvil y Android TV.")
+          print("Application ID configurado: com.argentinoplay.app")
 
       - name: Register Supabase auth deep link
         shell: bash
@@ -41,11 +97,9 @@ jobs:
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
           from pathlib import Path
-
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           if not manifest.is_file():
               raise SystemExit("::error::No se generó AndroidManifest.xml")
-
           android = "{http://schemas.android.com/apk/res/android}"
           ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
           tree = ET.parse(manifest)
@@ -53,49 +107,32 @@ jobs:
           application = root.find("application")
           if application is None:
               raise SystemExit("::error::AndroidManifest.xml no contiene application")
-
-          activities = [
-              node for node in application.findall("activity")
-              if node.get(android + "name", "").endswith("MainActivity")
-          ]
+          activities = [node for node in application.findall("activity")
+                        if node.get(android + "name", "").endswith("MainActivity")]
           if len(activities) != 1:
-              raise SystemExit(
-                  "::error::Se esperaba una única MainActivity para registrar "
-                  f"el deep link; encontradas: {len(activities)}"
-              )
-
+              raise SystemExit("::error::No se encontró una única MainActivity")
           activity = activities[0]
           for intent_filter in activity.findall("intent-filter"):
-              actions = {
-                  item.get(android + "name")
-                  for item in intent_filter.findall("action")
-              }
-              if "android.intent.action.VIEW" not in actions:
-                  continue
-              for data in intent_filter.findall("data"):
-                  if (
-                      data.get(android + "scheme") == "io.supabase.argentinoplay"
-                      and data.get(android + "host") == "login-callback"
-                  ):
-                      print("Deep link Supabase ya estaba configurado.")
-                      raise SystemExit(0)
-
+              actions = {item.get(android + "name") for item in intent_filter.findall("action")}
+              if "android.intent.action.VIEW" in actions:
+                  for data in intent_filter.findall("data"):
+                      if (data.get(android + "scheme") == "io.supabase.argentinoplay"
+                          and data.get(android + "host") == "login-callback"):
+                          print("Deep link Supabase ya estaba configurado.")
+                          raise SystemExit(0)
           intent_filter = ET.SubElement(activity, "intent-filter")
           ET.SubElement(intent_filter, "action", {android + "name": "android.intent.action.VIEW"})
           ET.SubElement(intent_filter, "category", {android + "name": "android.intent.category.DEFAULT"})
           ET.SubElement(intent_filter, "category", {android + "name": "android.intent.category.BROWSABLE"})
-          ET.SubElement(
-              intent_filter,
-              "data",
-              {
-                  android + "scheme": "io.supabase.argentinoplay",
-                  android + "host": "login-callback",
-              },
-          )
+          ET.SubElement(intent_filter, "data", {
+              android + "scheme": "io.supabase.argentinoplay",
+              android + "host": "login-callback",
+          })
           ET.indent(tree, space="    ")
           tree.write(manifest, encoding="utf-8", xml_declaration=True)
           print("Deep link Supabase registrado en AndroidManifest.xml")
           PY
+
 
       - name: Configure and verify Android API 36
         id: android_sdk
@@ -191,6 +228,14 @@ jobs:
           echo "Valor compileSdk configurado:"
           grep -nE 'compileSdk(Version)?[[:space:]]*(=|)[[:space:]]*36' android/app/build.gradle*
 
+      - name: Upload generated Android platform scaffold
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-platform-scaffold
+          path: android/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Block privileged Supabase credentials in client source
         shell: bash
         run: |
@@ -227,11 +272,39 @@ jobs:
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
+        run: |
+          if flutter analyze --fatal-infos --fatal-warnings > /tmp/analyze.out 2>&1; then
+            cat /tmp/analyze.out
+          else
+            code=$?
+            cat /tmp/analyze.out
+            sed -e 's/%/%25/g' -e 's/\r/%0D/g' /tmp/analyze.out | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/analyze.msg
+            split -b 850 -d /tmp/analyze.msg /tmp/az_
+            count=0
+            for chunk in /tmp/az_*; do
+              count=$((count+1))
+              echo "::error title=Analyze output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Automated tests
         id: tests
-        run: flutter test --reporter expanded
+        run: |
+          if flutter test --reporter expanded > /tmp/test.out 2>&1; then
+            cat /tmp/test.out
+          else
+            code=$?
+            cat /tmp/test.out
+            sed -n '/EXCEPTION/,$p' /tmp/test.out | head -c 8000 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/test.msg
+            split -b 850 -d /tmp/test.msg /tmp/ts_
+            count=0
+            for chunk in /tmp/ts_*; do
+              count=$((count+1))
+              echo "::error title=Test output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Build debug APK (full Gradle diagnostics)
         id: build
@@ -239,9 +312,23 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          flutter build apk --debug --verbose \
+          if flutter build apk --debug \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
-            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            > /tmp/build.out 2>&1; then
+            cat /tmp/build.out
+          else
+            code=$?
+            cat /tmp/build.out
+            tail -c 8000 /tmp/build.out | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | tr '\n' '\001' | sed 's/\x01/%0A/g' > /tmp/build.msg
+            split -b 850 -d /tmp/build.msg /tmp/bu_
+            count=0
+            for chunk in /tmp/bu_*; do
+              count=$((count+1))
+              echo "::error title=Build output ${count}::$(cat "${chunk}")"
+            done
+            exit ${code}
+          fi
 
       - name: Upload debug APK
         id: upload
@@ -269,6 +356,13 @@ jobs:
           printf 'Automated tests: %s\n' "${TESTS_OUTCOME:-not-run}"
           printf 'Debug APK build: %s\n' "${BUILD_OUTCOME:-not-run}"
           printf 'Artifact upload: %s\n' "${UPLOAD_OUTCOME:-not-run}"
+
+          if [[ "${BUILD_OUTCOME:-}" != "success" ]]; then
+            echo "Nota: la compilación del APK debug solo se omite cuando un paso previo no terminó en success (tests: ${TESTS_OUTCOME:-not-run})."
+          fi
+          if [[ "${UPLOAD_OUTCOME:-}" != "success" ]]; then
+            echo "Nota: la subida del artefacto APK solo se omite cuando la compilación del APK no terminó en success (build: ${BUILD_OUTCOME:-not-run})."
+          fi
 
           for outcome in "$ANDROID_SDK_OUTCOME" "$FORMAT_OUTCOME" "$ANALYZE_OUTCOME" "$TESTS_OUTCOME" "$BUILD_OUTCOME" "$UPLOAD_OUTCOME"; do
             if [[ "$outcome" != "success" ]]; then
