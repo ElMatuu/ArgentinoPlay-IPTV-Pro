@@ -63,12 +63,29 @@ void main() {
       }
     });
 
-    test('rejects non-public IPv6 literals', () {
-      for (final host in ['[::1]', '[fc00::1]', '[fe80::1]', '[::]']) {
+    test('rejects non-public and deprecated IPv6 literals', () {
+      for (final host in [
+        '[::1]',
+        '[fc00::1]',
+        '[fe80::1]',
+        '[::]',
+        '[::a00:1]',
+        '[::7f00:1]',
+      ]) {
         expect(
           validateRemotePlaylistUrl('https://$host/list.m3u').allowed,
           isFalse,
           reason: 'Expected $host to be rejected',
+        );
+      }
+    });
+
+    test('rejects IPv4-mapped IPv6 addresses containing private IPv4', () {
+      for (final host in ['[::ffff:7f00:1]', '[::ffff:a00:1]']) {
+        expect(
+          validateRemotePlaylistUrl('https://$host/list.m3u').allowed,
+          isFalse,
+          reason: 'Expected mapped private address $host to be rejected',
         );
       }
     });
