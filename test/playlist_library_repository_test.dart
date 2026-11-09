@@ -51,6 +51,66 @@ void main() {
     expect(await reopened.listPlaylists(), hasLength(2));
   });
 
+  test(
+    'replaces source while preserving playlist identity and active selection',
+    () async {
+      final item = await repository.createPlaylist(
+        name: 'Mi lista',
+        source:
+            '#EXTM3U\n#EXTINF:-1,Canal antiguo\nhttps://example.org/old.m3u8\n',
+        channelCount: 1,
+        id: 'stable-list',
+      );
+      await repository.setActivePlaylistId(item.id);
+
+      final updated = await repository.replacePlaylistSource(
+        id: item.id,
+        source:
+            '#EXTM3U\n#EXTINF:-1,Canal nuevo\nhttps://example.org/new.m3u8\n',
+        channelCount: 1,
+      );
+
+      expect(updated.id, item.id);
+      expect(updated.name, item.name);
+      expect(updated.createdAt, item.createdAt);
+      expect(updated.updatedAt, isNot(equals(item.updatedAt)));
+      expect(await repository.loadPlaylist(item.id), contains('Canal nuevo'));
+      expect(
+        await repository.loadPlaylist(item.id),
+        isNot(contains('Canal antiguo')),
+      );
+      expect(await repository.activePlaylistId(), item.id);
+      expect((await repository.listPlaylists()).single.channelCount, 1);
+    },
+  );
+
+  test('rejects replacing missing playlists and invalid replacement data',
+      () async {
+    await expectLater(
+      repository.replacePlaylistSource(
+        id: 'missing',
+        source: '#EXTM3U',
+        channelCount: 1,
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    final item = await repository.createPlaylist(
+      name: 'Válida',
+      source: '#EXTM3U',
+      channelCount: 1,
+      id: 'valid-list',
+    );
+    await expectLater(
+      repository.replacePlaylistSource(
+        id: item.id,
+        source: '#EXTM3U',
+        channelCount: 0,
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(await repository.loadPlaylist(item.id), '#EXTM3U');
+  });
+
   test('renames without changing source and rejects duplicate names', () async {
     final item = await repository.createPlaylist(
       name: 'Original',

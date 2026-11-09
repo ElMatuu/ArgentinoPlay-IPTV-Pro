@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:argentino_play/services/playlist_library_repository.dart';
 import 'package:argentino_play/services/playlist_manager_screen.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -45,6 +48,33 @@ class _FakePlaylistLibraryRepository extends PlaylistLibraryRepository {
 
   @override
   Future<String?> loadPlaylist(String id) async => _sources[id];
+
+  @override
+  Future<PlaylistRecord> replacePlaylistSource({
+    required String id,
+    required String source,
+    required int channelCount,
+  }) async {
+    if (channelCount < 1) {
+      throw const FormatException(
+        'Playlist must contain at least one channel.',
+      );
+    }
+    final record = _records[id];
+    if (record == null) {
+      throw const FormatException('Playlist not found.');
+    }
+    final updated = PlaylistRecord(
+      id: record.id,
+      name: record.name,
+      channelCount: channelCount,
+      createdAt: record.createdAt,
+      updatedAt: DateTime.utc(2026, 1, 3),
+    );
+    _records[id] = updated;
+    _sources[id] = source;
+    return updated;
+  }
 
   @override
   Future<String?> activePlaylistId() async => _activeId;
@@ -105,6 +135,9 @@ void main() {
   Future<void> openManager(
     WidgetTester tester, {
     required void Function(PlaylistRecord record, String source) onSelected,
+    String? activePlaylistId,
+    Future<FilePickerResult?> Function()? pickPlaylistFile,
+    void Function(PlaylistRecord record, String source)? onReplaced,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -116,8 +149,10 @@ void main() {
                   MaterialPageRoute<void>(
                     builder: (_) => PlaylistManagerScreen(
                       repository: repository,
-                      activePlaylistId: null,
+                      activePlaylistId: activePlaylistId,
                       onSelected: onSelected,
+                      onReplaced: onReplaced ?? (_, __) {},
+                      pickPlaylistFile: pickPlaylistFile,
                     ),
                   ),
                 );
@@ -211,6 +246,46 @@ void main() {
     expect(await repository.listPlaylists(), isEmpty);
   });
 
+  testWidgets('replaces active playlist source and notifies the player state',
+      (tester) async {
+    const replacement =
+        '#EXTM3U\n#EXTINF:-1,Canal Nuevo\nhttps://example.org/new.m3u8\n';
+    PlaylistRecord? replacedRecord;
+    String? replacedSource;
+
+    await openManager(
+      tester,
+      onSelected: (_, __) {},
+      activePlaylistId: 'news',
+      pickPlaylistFile: () async => FilePickerResult([
+        PlatformFile(
+          name: 'replacement.m3u8',
+          size: replacement.length,
+          bytes: Uint8List.fromList(replacement.codeUnits),
+        ),
+      ]),
+      onReplaced: (record, source) {
+        replacedRecord = record;
+        replacedSource = source;
+      },
+    );
+
+    await tester.tap(find.byTooltip('Acciones de Noticias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reemplazar M3U/M3U8'));
+    await tester.pumpAndSettle();
+
+    expect(replacedRecord?.id, 'news');
+    expect(replacedRecord?.name, 'Noticias');
+    expect(replacedRecord?.channelCount, 1);
+    expect(replacedSource, contains('Canal Nuevo'));
+    expect(await repository.loadPlaylist('news'), contains('Canal Nuevo'));
+    expect(
+      find.text('Lista "Noticias" actualizada: 1 canal.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('selects and activates a saved playlist', (tester) async {
     PlaylistRecord? selected;
     String? selectedSource;
@@ -229,5 +304,58 @@ void main() {
     expect(selected?.id, 'news');
     expect(selectedSource, contains('Canal Noticias'));
     expect(await repository.activePlaylistId(), 'news');
+  });
+
+  testWidgets('does not replace a playlist when the selected file is invalid',
+      (tester) async {
+    const invalid = 'not an M3U playlist';
+    await openManager(
+      tester,
+      onSelected: (_, __) {},
+      activePlaylistId: 'news',
+      pickPlaylistFile: () async => FilePickerResult([
+        PlatformFile(
+          name: 'invalid.m3u',
+          size: invalid.length,
+          bytes: Uint8List.fromList(invalid.codeUnits),
+        ),
+      ]),
+    );
+
+    await tester.tap(find.byTooltip('Acciones de Noticias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reemplazar M3U/M3U8'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('No se encontraron canales'), findsOneWidget);
+    expect(await repository.loadPlaylist('news'), contains('Canal Noticias'));
+  });
+
+  testWidgets('does not notify active player when replacing an inactive list',
+      (tester) async {
+    const replacement =
+        '#EXTM3U\\n#EXTINF:-1,Canal Nuevo\\nhttps://example.org/new.m3u8\\n';
+    var replacementNotifications = 0;
+    await openManager(
+      tester,
+      onSelected: (_, __) {},
+      activePlaylistId: 'another-list',
+      pickPlaylistFile: () async => FilePickerResult([
+        PlatformFile(
+          name: 'replacement.m3u8',
+          size: replacement.length,
+          bytes: Uint8List.fromList(replacement.codeUnits),
+        ),
+      ]),
+      onReplaced: (_, __) => replacementNotifications++,
+    );
+
+    await tester.tap(find.byTooltip('Acciones de Noticias'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reemplazar M3U/M3U8'));
+    await tester.pumpAndSettle();
+
+    expect(replacementNotifications, 0);
+    expect(await repository.loadPlaylist('news'), contains('Canal Nuevo'));
   });
 }
