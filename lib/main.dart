@@ -158,8 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final scheduleIndex =
         guide == null ? null : EpgScheduleIndex(guide.programmes);
-    final epgChannelMatcher =
-        guide == null ? null : EpgChannelMatcher(guide);
+    final epgChannelMatcher = guide == null ? null : EpgChannelMatcher(guide);
     if (!mounted) return;
     setState(() {
       _favorites = (prefs.getStringList('favorites') ?? []).toSet();
