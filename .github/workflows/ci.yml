@@ -244,8 +244,8 @@ jobs:
             exit 1
           fi
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
 
       - name: Report toolchain versions
         run: |

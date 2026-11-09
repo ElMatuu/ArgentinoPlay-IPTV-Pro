@@ -14,6 +14,7 @@ import 'services/epg_schedule_index.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
+import 'services/supabase_bootstrap.dart';
 import 'services/player_seek.dart';
 import 'services/player_remote_action.dart';
 import 'services/m3u_parser.dart';
@@ -24,7 +25,17 @@ export 'domain/tv_channel.dart';
 export 'services/m3u_parser.dart';
 export 'services/xmltv_parser.dart';
 
-void main() => runApp(ArgentinoPlayApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await SupabaseBootstrap.initializeFromEnvironment();
+  } catch (error, stackTrace) {
+    // Cloud is optional; a config issue must not block local playback.
+    debugPrint('Supabase initialization skipped: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+  runApp(ArgentinoPlayApp());
+}
 
 class ArgentinoPlayApp extends StatelessWidget {
   ArgentinoPlayApp({
