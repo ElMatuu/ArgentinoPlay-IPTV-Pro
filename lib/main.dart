@@ -76,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> _favorites = {};
   XmltvGuide? _guide;
   EpgScheduleIndex? _scheduleIndex;
+  EpgChannelMatcher? _epgChannelMatcher;
   bool _loading = true;
   bool _importing = false;
   String _query = '';
@@ -157,12 +158,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final scheduleIndex =
         guide == null ? null : EpgScheduleIndex(guide.programmes);
+    final epgChannelMatcher =
+        guide == null ? null : EpgChannelMatcher(guide);
     if (!mounted) return;
     setState(() {
       _favorites = (prefs.getStringList('favorites') ?? []).toSet();
       _channels = channels;
       _guide = guide;
       _scheduleIndex = scheduleIndex;
+      _epgChannelMatcher = epgChannelMatcher;
       _activePlaylistId = activePlaylistId;
       _activePlaylistName = activePlaylistName;
       _loading = false;
@@ -320,6 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _guide = guide;
         _scheduleIndex = EpgScheduleIndex(guide.programmes);
+        _epgChannelMatcher = EpgChannelMatcher(guide);
       });
       _showMessage(
         'Guía importada: ${guide.channels.length} canales y '
@@ -348,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (guide == null) {
       return null;
     }
-    final matchedChannel = matchEpgChannel(channel, guide);
+    final matchedChannel = _epgChannelMatcher?.match(channel);
     if (matchedChannel == null) return null;
     return _scheduleIndex?.programmeAt(matchedChannel.id, DateTime.now());
   }
@@ -361,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
               channel.group.toLowerCase().contains(_query.toLowerCase());
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
       final inGuide = _tab != 2 ||
-          (_guide != null && matchEpgChannel(channel, _guide!) != null);
+          (_guide != null && _epgChannelMatcher?.match(channel) != null);
       return matches && inFavorites && inGuide;
     }).toList();
 
@@ -650,7 +655,7 @@ class EpgScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final matchedChannel = matchEpgChannel(channel, guide);
+    final matchedChannel = EpgChannelMatcher(guide).match(channel);
     final programmes = matchedChannel == null
         ? const <EpgProgramme>[]
         : guide.programmesFor(matchedChannel.id);
