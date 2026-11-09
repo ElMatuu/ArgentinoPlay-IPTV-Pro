@@ -81,10 +81,30 @@ bool _isNonPublicAddress(InternetAddress address) {
         (a == 169 && b == 254) ||
         (a == 172 && b >= 16 && b <= 31) ||
         (a == 192 && (b == 0 || b == 168)) ||
+        (a == 192 && b == 88 && bytes[2] == 99) ||
         (a == 198 && (b == 18 || b == 19 || b == 51)) ||
         (a == 203 && b == 0) ||
         a >= 224;
   }
+
+  // Accept only IPv6 global-unicast space. This conservatively excludes
+  // unspecified, loopback, link-local, unique-local, multicast, translation,
+  // and other non-global address blocks before the narrower special-use checks.
+  final isGlobalUnicast = (bytes[0] & 0xe0) == 0x20;
+  if (!isGlobalUnicast) return true;
+
+  // Exclude protocol-assignment, documentation, and 6to4 transition ranges.
+  final isProtocolAssignment = bytes[0] == 0x20 &&
+      bytes[1] == 0x01 &&
+      (bytes[2] & 0xfe) == 0x00; // 2001::/23
+  final isDocumentation = (bytes[0] == 0x20 &&
+          bytes[1] == 0x01 &&
+          bytes[2] == 0x0d &&
+          bytes[3] == 0xb8) ||
+      (bytes[0] == 0x3f &&
+          (bytes[1] & 0xf0) == 0xf0); // 2001:db8::/32, 3fff::/20
+  final isSixToFour = bytes[0] == 0x20 && bytes[1] == 0x02;
+  if (isProtocolAssignment || isDocumentation || isSixToFour) return true;
 
   final allZero = bytes.every((byte) => byte == 0);
   final loopback = bytes.take(15).every((byte) => byte == 0) && bytes[15] == 1;
