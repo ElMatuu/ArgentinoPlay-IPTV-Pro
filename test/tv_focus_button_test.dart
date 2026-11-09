@@ -1,5 +1,6 @@
 import 'package:argentino_play/services/tv_focus_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -8,7 +9,7 @@ void main() {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: const Scaffold(
+      home: Scaffold(
         body: FocusTraversalGroup(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
