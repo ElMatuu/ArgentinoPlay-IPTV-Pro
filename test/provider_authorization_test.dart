@@ -20,7 +20,11 @@ void main() {
       checkedAt: checkedAt,
       expiresAt: expiresAt,
       rights: rights ?? {ProviderRight.inAppPlayback},
-      platforms: platforms ?? {ProviderPlatform.android, ProviderPlatform.androidTv},
+      platforms: platforms ??
+          {
+            ProviderPlatform.android,
+            ProviderPlatform.androidTv,
+          },
       territories: territories ?? {'AR'},
     );
   }
@@ -107,7 +111,9 @@ void main() {
 
   test('rejects insecure evidence links and malformed scope', () {
     expect(
-      () => authorization(evidenceUri: Uri.parse('http://provider.example/license')),
+      () => authorization(
+        evidenceUri: Uri.parse('http://provider.example/license'),
+      ),
       throwsA(isA<FormatException>()),
     );
     expect(
