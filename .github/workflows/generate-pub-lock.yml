@@ -1,0 +1,34 @@
+name: Generate Flutter dependency lockfile
+
+on:
+  push:
+    branches:
+      - feat/flutter-supabase-bootstrap
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    if: contains(github.event.head_commit.message, '[generate-pub-lock]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+          cache: true
+      - name: Resolve dependencies and generate lockfile
+        run: flutter pub get
+      - name: Commit lockfile
+        run: |
+          set -euo pipefail
+          test -s pubspec.lock
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pubspec.lock
+          git commit -m "Commit Flutter dependency lockfile"
+          git push origin "HEAD:$GITHUB_REF_NAME"
