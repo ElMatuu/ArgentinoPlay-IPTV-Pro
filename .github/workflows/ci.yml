@@ -1,7 +1,7 @@
 name: Flutter CI
 on:
   push:
-    branches: [main, 'rebuild/**']
+    branches: [main, 'rebuild/**', 'perf/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -209,12 +209,12 @@ jobs:
         run: |
           set -euo pipefail
           echo "Validando formato con dart format --set-exit-if-changed --output=none."
-          if dart format --set-exit-if-changed --output=none lib test; then
+          if dart format --set-exit-if-changed --output=none lib test tool; then
             echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
             exit 0
           fi
           echo "Hay archivos Dart que no cumplen 'dart format'."
-          dart format lib test
+          dart format lib test tool
           git --no-pager diff -- lib test | sed -e 's/ /·/g' -e 's/	/→/g' > /tmp/format.diff || true
           size="$(wc -c < /tmp/format.diff)"
           echo "Diff de formato (espacios marcados con punto medio): ${size} bytes."
@@ -304,6 +304,9 @@ jobs:
             done
             exit ${code}
           fi
+
+      - name: Run synthetic XMLTV performance benchmark
+        run: dart run tool/benchmark_xmltv.dart
 
       - name: Build debug APK (full Gradle diagnostics)
         id: build
