@@ -7,8 +7,8 @@
 - Post-merge GitHub Actions run #178 completed successfully: Android scaffold generation/configuration, Dart formatting, static analysis, automated tests, debug APK build and artifact upload.
 - The merged Flutter client includes M3U/M3U8 and XMLTV parsing, local playlist/guide persistence, multi-playlist management, favorites/search/guide UI, player startup/retry race protection, bounded seeking and isolated remote-key mapping tests.
 - The complete Flutter-generated `android/` platform scaffold is committed on the dedicated Android scaffold branch in PR #40, including Gradle wrapper files, manifest/resources and Kotlin entry point.
-- Clean-clone verification passed on GitHub Actions run #42665404448 (commit `08ce0c9d5e45645a5073ea8a628a1e7b9b438f15`): dependencies restored, committed Android files verified, and a debug APK rebuilt from the clean clone.
-- Verified debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13697066335`, SHA-256 `0905711aa7350fddda1674f77070c0872f37870e08e2085722869307960652db`). This is a CI debug artifact, not a signed release.
+- Latest end-to-end clean-clone verification passed on GitHub Actions run #42668007279 for commit `09aa89c339dea58a661735cb484fe284b3ddde16`: formatting, static analysis, all automated tests, Android build, committed-scaffold verification from a clean clone, and debug APK upload succeeded.
+- Latest debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13697902825`, SHA-256 `d11f768234cb3d9f558fde6f6ad1e9b1525253d26d1e0cde97cd0cde798238e4`, approximately 83.7 MB). This is a CI debug artifact, not a signed release.
 
 ## What a green CI run proves — and what it does not
 
@@ -30,7 +30,7 @@ CI verifies source formatting, static analysis, automated tests, Android project
 ### B. Android TV interaction
 1. Audit focus ownership so media seeking does not swallow D-pad navigation events.
 2. Implement deterministic focus traversal, visible focus indication and a usable Back/exit behavior. The player now maps Android GoBack, Escape and browser-back keys to route navigation, including while playback is loading or has failed.
-3. Add widget tests for focus movement and remote-key behavior. Unit tests now cover the three Back key mappings.
+3. Add widget tests for focus movement and remote-key behavior. Current unit tests cover select/enter/space/media toggle, play/pause, arrow and dedicated media seek keys, Back mappings, and ignored navigation keys. Seek calculation tests cover forward/backward offsets, zero/end clamping, invalid durations, and millisecond precision. Actual focus traversal remains untested.
 4. Validate on a physical Android TV device or emulator with a remote; document any unsupported keys.
 
 **Exit criterion:** tested focus movement and player controls on a TV-sized interface, plus recorded device/emulator acceptance results.
