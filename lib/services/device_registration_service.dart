@@ -255,6 +255,12 @@ class DeviceRegistrationService {
     return RegisteredDevice.fromRow(inserted);
   }
 
+  Future<String?> currentDeviceId(String userId) async {
+    _validateUuid(userId, 'userId');
+    final savedId = await _idStore.read(userId);
+    return savedId != null && _isUuid(savedId) ? savedId : null;
+  }
+
   Future<List<RegisteredDevice>> listDevices(String userId) async {
     _validateUuid(userId, 'userId');
     final rows = await _gateway.listDevices(userId);
