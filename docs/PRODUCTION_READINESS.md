@@ -7,8 +7,9 @@
 - Post-merge GitHub Actions run #178 completed successfully: Android scaffold generation/configuration, Dart formatting, static analysis, automated tests, debug APK build and artifact upload.
 - The merged Flutter client includes M3U/M3U8 and XMLTV parsing, local playlist/guide persistence, multi-playlist management, favorites/search/guide UI, player startup/retry race protection, bounded seeking and isolated remote-key mapping tests.
 - The complete Flutter-generated `android/` platform scaffold is committed on the dedicated Android scaffold branch in PR #40, including Gradle wrapper files, manifest/resources and Kotlin entry point.
-- Latest end-to-end clean-clone verification passed on GitHub Actions run #42680513217 for commit `eaae828ce3319bf81a5974859b318ae4db2a9f02`. Formatting, static analysis, all automated tests, Android build, committed-scaffold verification from a clean clone, and debug APK upload all completed successfully.
+- Latest end-to-end clean-clone verification passed on GitHub Actions run [#42690457985](https://github.com/ElMatuu/ArgentinoPlay-IPTV-Pro/actions/runs/42690457985) for commit `46cc7693e2dc29e20602a6e6f39e2274107b4e6b`. Formatting, static analysis, automated tests, Android build, clean-checkout verification and debug APK upload all completed successfully.
 - Verified debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13703222217`, 83,708,787 bytes; approximately 83.7 MB). This is a CI debug artifact, not a signed release.
+- The generated Android Gradle configuration intentionally leaves the release variant unsigned. The previous generated debug-keystore signing assignment has been removed; protected production signing is still required before any release.
 
 ## What a green CI run proves — and what it does not
 
