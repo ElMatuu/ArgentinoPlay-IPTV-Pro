@@ -22,7 +22,7 @@
 - PR #23: visualización segura de logos M3U. Último CI conocido exitoso en `a8a8e5e1bebfb01297e2f37b1417e8685fb4e721`.
 - PR #24: búsqueda y filtros de programas EPG. Último CI conocido exitoso en `cd84d5e54ed1f210ef1f3125c55381d8b934ff81`.
 - PR #25: reemplazo seguro de fuentes de listas existentes. Último CI conocido exitoso en `2aed2f256d6dd4dfbaed675669bf5d559e7205df`.
-- PR #5, #6 y #7 se organizaron como cadena de dependencias: #5 apunta a `main`, #6 a #5 y #7 a #6. PR #5 pasó CI completo, incluida la compilación y publicación del APK debug. PR #7 también pasó CI completo en `42550901710`, incluida la compilación y publicación del APK debug. PR #6 conserva su último estado verificado anterior; revisar su CI contra la base actualizada antes de integrar. Ninguno está fusionado.
+- PR #5, #6 y #7 se organizaron como cadena de dependencias: #5 apunta a `main`, #6 a #5 y #7 a #6. PR #5 pasó CI completo, incluida la compilación y publicación del APK debug. PR #6 pasó CI completo en `42547371436` sobre `e98db8feeab51f84a00863b2815b0c75b5cd5d0a`; PR #7 pasó CI completo en `42550901710` sobre `1ff3ca4a4d3ede2f6840162995a025f60d475543`, ambas incluidas compilación y publicación del APK debug. Los resultados corresponden a esos commits; volver a ejecutar CI si cambia su base antes de integrar. Ninguno está fusionado.
 - PR #3, #4 y #9 siguen abiertas; sus últimas ejecuciones conocidas terminaron correctamente. Issue #1 sigue siendo el registro de aceptación y fases.
 - El proyecto Supabase conectado está `ACTIVE_HEALTHY`. La migración `20261108132652_initial_account_and_sync_schema` figura aplicada. Se verificaron siete tablas públicas, RLS habilitado en las siete y nueve políticas de propiedad. Los asesores de seguridad y salud no informaron hallazgos; el asesor de rendimiento solo muestra índices todavía no utilizados en una base sin tráfico.
 - Endurecimiento de permisos: PR #5 contiene la migración CLI generada `20261109021431_tighten_authenticated_table_grants.sql` y su CI pasó completa. Se probó el SQL dentro de una transacción contra el proyecto alojado y se confirmó que conserva RLS, elimina `TRUNCATE` y limita cada tabla a los permisos requeridos; la transacción se revirtió, por lo que la base alojada todavía no cambió. Falta aprobación explícita antes de aplicar.
@@ -33,10 +33,10 @@
 
 ## Próximas acciones priorizadas
 
-1. Cerrar las ejecuciones CI actuales de PR #5–#7 y mantener el orden de integración #5 → #6 → #7, sin fusionar sin aprobación.
+1. Mantener el orden de integración #5 → #6 → #7 y volver a validar CI contra la base actualizada después de cada integración; no fusionar sin aprobación explícita.
 2. Completar CI de la migración versionada en PR #5; revisar y aprobar su aplicación al proyecto alojado, y después validar grants y políticas RLS con dos usuarios distintos.
 3. Verificar la allowlist de redirects Auth alojada y probar el flujo de recuperación/cambio de contraseña y deep link en un dispositivo Android.
-4. Exponer la gestión de dispositivos en la pantalla de cuenta; luego implementar API transaccional push/pull, resolución de conflictos, idempotencia y borrado seguro. No subir URLs M3U ni credenciales.
+4. Implementar API transaccional push/pull con validación de dispositivo activo en servidor, idempotencia, control optimista de revisiones, tombstones, resolución de conflictos y borrado seguro. No subir URLs M3U ni credenciales. El panel de dispositivos ya está expuesto en la PR #7, pero aún no está integrado en `main`.
 5. Incorporar `pubspec.lock` y definir el scaffold Android reproducible para builds locales.
 6. Completar pruebas adversariales de M3U/XMLTV, persistencia, reproducción y recuperación de red.
 7. Validar Android TV con D-pad y un dispositivo/emulador; preparar release firmado con credenciales bajo control del propietario.
