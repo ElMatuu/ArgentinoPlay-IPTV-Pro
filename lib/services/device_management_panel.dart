@@ -66,7 +66,7 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
   }
 
   String _platformName() {
-    switch (Theme.of(context).platform) {
+    switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return 'android';
       case TargetPlatform.iOS:
