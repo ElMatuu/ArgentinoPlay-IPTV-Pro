@@ -61,3 +61,6 @@ Use only streams that are owned, public-domain, explicitly licensed, or otherwis
 ## Release gate
 
 Do not label the app production-ready until the Android project is reproducible from a clean clone, playback and TV acceptance checks are complete, security/privacy and content-rights reviews pass, and signed release artifacts are verified.
+
+
+Android TV focus: Home Material controls use a visible focus overlay; automated Down-key traversal coverage added. Physical Android TV/emulator acceptance remains pending.
