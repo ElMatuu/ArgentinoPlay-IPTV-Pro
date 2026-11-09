@@ -81,5 +81,26 @@ void main() {
       expect(channels, hasLength(1));
       expect(channels.single.name, 'Canal válido');
     });
+
+    test('parses a 5,001-entry playlist without dropping valid channels', () {
+      const channelCount = 5001;
+      final source = StringBuffer('#EXTM3U\n');
+      for (var index = 0; index < channelCount; index++) {
+        source
+          ..writeln(
+            '#EXTINF:-1 tvg-id="channel.$index" group-title="Argentina",Canal $index',
+          )
+          ..writeln('https://streams.example.org/$index/index.m3u8');
+      }
+
+      final channels = parseM3u(source.toString());
+
+      expect(channels, hasLength(channelCount));
+      expect(channels.first.name, 'Canal 0');
+      expect(channels.first.tvgId, 'channel.0');
+      expect(channels.last.name, 'Canal 5000');
+      expect(channels.last.tvgId, 'channel.5000');
+      expect(channels.every((channel) => channel.group == 'Argentina'), isTrue);
+    });
   });
 }
