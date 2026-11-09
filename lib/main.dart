@@ -1,17 +1,23 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'services/supabase_bootstrap.dart';
-import 'services/account_screen.dart';
 import 'package:video_player/video_player.dart';
 
 import 'domain/epg.dart';
 import 'domain/tv_channel.dart';
+import 'services/epg_matcher.dart';
+import 'services/epg_schedule_index.dart';
 import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
+import 'services/supabase_bootstrap.dart';
+import 'services/account_screen.dart';
+import 'services/player_seek.dart';
+import 'services/player_remote_action.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -81,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<TvChannel> _channels = [];
   Set<String> _favorites = {};
   XmltvGuide? _guide;
+  EpgScheduleIndex? _scheduleIndex;
   bool _loading = true;
   bool _importing = false;
   String _query = '';
@@ -160,11 +167,14 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // A damaged guide must not prevent the channel list from loading.
     }
+    final scheduleIndex =
+        guide == null ? null : EpgScheduleIndex(guide.programmes);
     if (!mounted) return;
     setState(() {
       _favorites = (prefs.getStringList('favorites') ?? []).toSet();
       _channels = channels;
       _guide = guide;
+      _scheduleIndex = scheduleIndex;
       _activePlaylistId = activePlaylistId;
       _activePlaylistName = activePlaylistName;
       _loading = false;
@@ -201,25 +211,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _importPlaylist() async {
     if (_importing) return;
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['m3u', 'm3u8'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-
-    final bytes = result.files.single.bytes;
-    if (bytes == null) {
-      _showMessage('No se pudo acceder al contenido del archivo.');
-      return;
-    }
-    if (bytes.lengthInBytes > 5 * 1024 * 1024) {
-      _showMessage('La lista supera el límite de importación de 5 MB.');
-      return;
-    }
-
     setState(() => _importing = true);
     try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['m3u', 'm3u8'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final bytes = result.files.single.bytes;
+      if (bytes == null) {
+        _showMessage('No se pudo acceder al contenido del archivo.');
+        return;
+      }
+      if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+        _showMessage('La lista supera el límite de importación de 5 MB.');
+        return;
+      }
+
       final source = utf8.decode(bytes);
       final parsed = parseM3u(source);
       if (parsed.isEmpty) {
@@ -258,32 +268,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<String?> _requestPlaylistName(String suggestedName) async {
-    final controller = TextEditingController(text: suggestedName);
-    final name = await showDialog<String>(
+    return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Guardar nueva lista'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 80,
-          decoration: const InputDecoration(labelText: 'Nombre de la lista'),
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Guardar'),
-          ),
-        ],
+      builder: (context) => PlaylistNameDialog(
+        dialogTitle: 'Guardar nueva lista',
+        initialValue: suggestedName,
+        labelText: 'Nombre de la lista',
+        confirmLabel: 'Guardar',
       ),
     );
-    controller.dispose();
-    return name;
   }
 
   Future<void> _openPlaylistManager() async {
@@ -307,30 +300,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _importEpg() async {
-    if (_importing) {
-      return;
-    }
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xml', 'xmltv'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) {
-      return;
-    }
-
-    final bytes = result.files.single.bytes;
-    if (bytes == null) {
-      _showMessage('No se pudo acceder al contenido del archivo EPG.');
-      return;
-    }
-    if (bytes.lengthInBytes > 10 * 1024 * 1024) {
-      _showMessage('La guía supera el límite de importación de 10 MB.');
-      return;
-    }
-
+    if (_importing) return;
     setState(() => _importing = true);
     try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xml', 'xmltv'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final bytes = result.files.single.bytes;
+      if (bytes == null) {
+        _showMessage('No se pudo acceder al contenido del archivo EPG.');
+        return;
+      }
+      if (bytes.lengthInBytes > 10 * 1024 * 1024) {
+        _showMessage('La guía supera el límite de importación de 10 MB.');
+        return;
+      }
+
       final source = utf8.decode(bytes);
       final guide = parseXmltv(source);
       if (guide.channels.isEmpty || guide.programmes.isEmpty) {
@@ -339,10 +328,11 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
       await widget.libraryRepository.saveGuide(source);
-      if (!mounted) {
-        return;
-      }
-      setState(() => _guide = guide);
+      if (!mounted) return;
+      setState(() {
+        _guide = guide;
+        _scheduleIndex = EpgScheduleIndex(guide.programmes);
+      });
       _showMessage(
         'Guía importada: ${guide.channels.length} canales y '
         '${guide.programmes.length} programas.',
@@ -352,9 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       _showMessage('No se pudo procesar el archivo XMLTV.');
     } finally {
-      if (mounted) {
-        setState(() => _importing = false);
-      }
+      if (mounted) setState(() => _importing = false);
     }
   }
 
@@ -369,20 +357,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   EpgProgramme? _currentProgramme(TvChannel channel) {
     final guide = _guide;
-    if (guide == null || channel.tvgId.isEmpty) {
+    if (guide == null) {
       return null;
     }
-    return guide.programmeAt(channel.tvgId, DateTime.now());
+    final matchedChannel = matchEpgChannel(channel, guide);
+    if (matchedChannel == null) return null;
+    return _scheduleIndex?.programmeAt(matchedChannel.id, DateTime.now());
   }
 
   @override
   Widget build(BuildContext context) {
     final visible = _channels.where((channel) {
-      final matches = channel.name.toLowerCase().contains(_query.toLowerCase()) ||
-          channel.group.toLowerCase().contains(_query.toLowerCase());
+      final matches =
+          channel.name.toLowerCase().contains(_query.toLowerCase()) ||
+              channel.group.toLowerCase().contains(_query.toLowerCase());
       final inFavorites = _tab != 1 || _favorites.contains(channel.url);
       final inGuide = _tab != 2 ||
-          (_guide?.channels.containsKey(channel.tvgId) ?? false);
+          (_guide != null && matchEpgChannel(channel, _guide!) != null);
       return matches && inFavorites && inGuide;
     }).toList();
 
@@ -491,8 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemBuilder: (context, index) {
                             final channel = visible[index];
                             final programme = _currentProgramme(channel);
-                            final isFavorite =
-                                _favorites.contains(channel.url);
+                            final isFavorite = _favorites.contains(channel.url);
                             return ListTile(
                               leading: const CircleAvatar(
                                 child: Icon(Icons.live_tv),
@@ -629,7 +619,7 @@ class _EmptyState extends StatelessWidget {
     final description = favoritesOnly
         ? 'Marcá canales con el corazón para encontrarlos acá.'
         : guideOnly
-            ? 'Importá una guía XMLTV y vinculala mediante el identificador tvg-id de cada canal.'
+            ? 'Importá una guía XMLTV. Los canales se vinculan por tvg-id o, si falta, por un nombre único.'
             : 'Importá una lista M3U/M3U8 de fuentes propias, públicas autorizadas o licenciadas.';
     final icon = favoritesOnly
         ? Icons.favorite_border
@@ -683,7 +673,10 @@ class EpgScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final programmes = guide.programmesFor(channel.tvgId);
+    final matchedChannel = matchEpgChannel(channel, guide);
+    final programmes = matchedChannel == null
+        ? const <EpgProgramme>[]
+        : guide.programmesFor(matchedChannel.id);
     return Scaffold(
       appBar: AppBar(title: Text('Programación · ${channel.name}')),
       body: programmes.isEmpty
@@ -699,9 +692,7 @@ class EpgScreen extends StatelessWidget {
                 return ListTile(
                   leading: Icon(
                     now ? Icons.play_circle_fill : Icons.schedule,
-                    color: now
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
+                    color: now ? Theme.of(context).colorScheme.primary : null,
                   ),
                   title: Text(programme.title),
                   subtitle: Text(
@@ -739,6 +730,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   String? _error;
   bool _busy = true;
   bool _wasPlayingBeforePause = false;
+  int _startGeneration = 0;
 
   @override
   void initState() {
@@ -747,41 +739,73 @@ class _PlayerScreenState extends State<PlayerScreen>
     _start();
   }
 
-  Future<void> _start() async {
-    final previous = _controller;
-    previous?.removeListener(_onPlayerChanged);
-    await previous?.dispose();
-
-    if (!mounted) {
-      return;
+  @override
+  void didUpdateWidget(covariant PlayerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.channel.url != widget.channel.url) {
+      _start();
     }
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+  }
 
+  Future<void> _start() async {
+    final generation = ++_startGeneration;
+    final previous = _controller;
+    _controller = null;
+    previous?.removeListener(_onPlayerChanged);
+
+    if (mounted) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+    }
+
+    VideoPlayerController? controller;
     try {
-      final controller = VideoPlayerController.networkUrl(
+      await previous?.dispose();
+      if (!mounted || generation != _startGeneration) {
+        return;
+      }
+
+      controller = VideoPlayerController.networkUrl(
         Uri.parse(widget.channel.url),
       );
       _controller = controller;
       controller.addListener(_onPlayerChanged);
       await controller.initialize();
-      if (!mounted) {
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
         return;
       }
       await controller.play();
-      if (mounted) {
-        setState(() => _busy = false);
+      if (!mounted ||
+          generation != _startGeneration ||
+          !identical(_controller, controller)) {
+        return;
       }
+      setState(() => _busy = false);
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _error =
-              'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
-        });
+      if (!mounted || generation != _startGeneration) {
+        return;
       }
+      if (identical(_controller, controller)) {
+        controller?.removeListener(_onPlayerChanged);
+        _controller = null;
+        try {
+          await controller?.dispose();
+        } catch (_) {
+          // Preserve the original startup failure for the user-facing state.
+        }
+      }
+      if (!mounted || generation != _startGeneration) {
+        return;
+      }
+      setState(() {
+        _busy = false;
+        _error =
+            'No se pudo iniciar la reproducción. Revisá la conexión, el formato y los permisos de la fuente.';
+      });
     }
   }
 
@@ -801,6 +825,84 @@ class _PlayerScreenState extends State<PlayerScreen>
     setState(() {});
   }
 
+  KeyEventResult _handleRemoteKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final action = playerRemoteActionForKey(event.logicalKey);
+    // Back navigation must remain available while the player is loading or
+    // showing an error, even when no initialized video controller exists.
+    if (action == PlayerRemoteAction.back) {
+      Navigator.of(context).maybePop();
+      return KeyEventResult.handled;
+    }
+
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return KeyEventResult.ignored;
+    }
+
+    switch (action) {
+      case PlayerRemoteAction.toggle:
+        _togglePlayback(controller);
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.play:
+        unawaited(_runPlayerCommand(controller, controller.play));
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.pause:
+        unawaited(_runPlayerCommand(controller, controller.pause));
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.seekBackward:
+        // Only seek while the player surface itself owns focus. If a child
+        // control is focused, let the directional event bubble to Flutter's
+        // focus traversal system instead of trapping the D-pad on the player.
+        if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
+        _seekBy(controller, const Duration(seconds: -10));
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.seekForward:
+        if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
+        _seekBy(controller, const Duration(seconds: 10));
+        return KeyEventResult.handled;
+      case PlayerRemoteAction.back:
+        Navigator.of(context).maybePop();
+        return KeyEventResult.handled;
+      case null:
+        return KeyEventResult.ignored;
+    }
+  }
+
+  void _seekBy(VideoPlayerController controller, Duration offset) {
+    final target = calculateSeekTarget(
+      position: controller.value.position,
+      duration: controller.value.duration,
+      offset: offset,
+    );
+    if (target == null) return;
+    unawaited(_runPlayerCommand(controller, () => controller.seekTo(target)));
+  }
+
+  void _togglePlayback(VideoPlayerController controller) {
+    final command =
+        controller.value.isPlaying ? controller.pause : controller.play;
+    unawaited(_runPlayerCommand(controller, command));
+  }
+
+  Future<void> _runPlayerCommand(
+    VideoPlayerController controller,
+    Future<void> Function() command,
+  ) async {
+    try {
+      await command();
+    } catch (_) {
+      if (!mounted || !identical(_controller, controller)) return;
+      setState(() {
+        _busy = false;
+        _error =
+            'No se pudo completar el control de reproducción. Probá reintentar la fuente.';
+      });
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final controller = _controller;
@@ -810,10 +912,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       _wasPlayingBeforePause = controller.value.isPlaying;
-      controller.pause();
-    } else if (state == AppLifecycleState.resumed &&
-        _wasPlayingBeforePause) {
-      controller.play();
+      unawaited(_runPlayerCommand(controller, controller.pause));
+    } else if (state == AppLifecycleState.resumed && _wasPlayingBeforePause) {
+      unawaited(_runPlayerCommand(controller, controller.play));
       _wasPlayingBeforePause = false;
     }
   }
@@ -834,67 +935,68 @@ class _PlayerScreenState extends State<PlayerScreen>
         ? controller.value.aspectRatio
         : 16 / 9;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.channel.name)),
-      body: Center(
-        child: _busy
-            ? const CircularProgressIndicator()
-            : _error != null
-                ? Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48),
-                        const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          onPressed: _start,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  )
-                : controller == null || !initialized
-                    ? const Text('Preparando reproductor...')
-                    : AspectRatio(
-                        aspectRatio: aspectRatio,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
+    return FocusTraversalGroup(
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: _handleRemoteKey,
+        child: Scaffold(
+          appBar: AppBar(title: Text(widget.channel.name)),
+          body: Center(
+            child: _busy
+                ? const CircularProgressIndicator()
+                : _error != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            VideoPlayer(controller),
-                            VideoProgressIndicator(
-                              controller,
-                              allowScrubbing: true,
+                            const Icon(Icons.error_outline, size: 48),
+                            const SizedBox(height: 12),
+                            Text(_error!, textAlign: TextAlign.center),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _start,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Reintentar'),
                             ),
-                            Align(
-                              alignment: Alignment.center,
-                              child: IconButton.filledTonal(
-                                iconSize: 42,
-                                onPressed: () {
-                                  if (controller.value.isPlaying) {
-                                    controller.pause();
-                                  } else {
-                                    controller.play();
-                                  }
-                                },
-                                icon: Icon(
-                                  controller.value.isPlaying
-                                      ? Icons.pause
-                                      : Icons.play_arrow,
-                                ),
-                              ),
-                            ),
-                            if (controller.value.isBuffering)
-                              const Align(
-                                alignment: Alignment.topCenter,
-                                child: LinearProgressIndicator(),
-                              ),
                           ],
                         ),
-                      ),
+                      )
+                    : controller == null || !initialized
+                        ? const Text('Preparando reproductor...')
+                        : AspectRatio(
+                            aspectRatio: aspectRatio,
+                            child: Stack(
+                              alignment: Alignment.bottomCenter,
+                              children: [
+                                VideoPlayer(controller),
+                                VideoProgressIndicator(
+                                  controller,
+                                  allowScrubbing: true,
+                                ),
+                                Align(
+                                  alignment: Alignment.center,
+                                  child: IconButton.filledTonal(
+                                    iconSize: 42,
+                                    onPressed: () =>
+                                        _togglePlayback(controller),
+                                    icon: Icon(
+                                      controller.value.isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
+                                    ),
+                                  ),
+                                ),
+                                if (controller.value.isBuffering)
+                                  const Align(
+                                    alignment: Alignment.topCenter,
+                                    child: LinearProgressIndicator(),
+                                  ),
+                              ],
+                            ),
+                          ),
+          ),
+        ),
       ),
     );
   }
