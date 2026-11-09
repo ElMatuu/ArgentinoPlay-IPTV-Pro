@@ -34,9 +34,15 @@ RemotePlaylistUrlDecision validateRemotePlaylistUrl(String input) {
   }
 
   final host = uri.host.toLowerCase();
-  final normalizedHost = host.startsWith('[') && host.endsWith(']')
+  final unbracketedHost = host.startsWith('[') && host.endsWith(']')
       ? host.substring(1, host.length - 1)
       : host;
+  // A final DNS root dot does not change a hostname's identity. Remove it for
+  // policy checks so localhost. and printer.local. cannot bypass suffix rules.
+  var normalizedHost = unbracketedHost;
+  while (normalizedHost.endsWith('.')) {
+    normalizedHost = normalizedHost.substring(0, normalizedHost.length - 1);
+  }
   final address = InternetAddress.tryParse(normalizedHost);
   final looksLikeNonStandardIpv4 = RegExp(
     r'^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*$',
@@ -92,5 +98,12 @@ bool _isNonPublicAddress(InternetAddress address) {
     final mapped = InternetAddress.fromRawAddress(bytes.sublist(12));
     return _isNonPublicAddress(mapped);
   }
+
+  // Deprecated IPv4-compatible IPv6 addresses (::a.b.c.d) can encode a
+  // non-public IPv4 destination without using the mapped-address marker.
+  // Reject this obsolete form rather than treating it as globally routable.
+  final ipv4Compatible = bytes.take(12).every((byte) => byte == 0);
+  if (ipv4Compatible) return true;
+
   return allZero || loopback || uniqueLocal || linkLocal || multicast;
 }
