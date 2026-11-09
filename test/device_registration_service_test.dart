@@ -140,6 +140,18 @@ void main() {
     expect(gateway.rows[deviceA]!['revoked_at'], isNotNull);
   });
 
+  test('returns the saved id only for a valid current device', () async {
+    expect(await service.currentDeviceId(userA), isNull);
+    await service.registerCurrentDevice(
+      userId: userA,
+      label: 'Teléfono',
+      platform: 'android',
+      appVersion: '1.0.0',
+    );
+    expect(await service.currentDeviceId(userA), deviceA);
+    expect(await service.currentDeviceId(userB), isNull);
+  });
+
   test('rejects invalid user ids and device metadata', () async {
     await expectLater(
       service.registerCurrentDevice(
