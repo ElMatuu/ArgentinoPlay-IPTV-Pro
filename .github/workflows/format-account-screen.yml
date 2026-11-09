@@ -21,6 +21,8 @@ jobs:
           channel: stable
           flutter-version: '3.47.9'
           cache: true
+      - name: Resolve package configuration
+        run: flutter pub get
       - name: Apply formatter and show resulting diff
         run: |
           dart --version
