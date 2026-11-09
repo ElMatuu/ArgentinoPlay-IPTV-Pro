@@ -19,6 +19,7 @@ class PlaylistManagerScreen extends StatefulWidget {
   final String? activePlaylistId;
   final void Function(PlaylistRecord record, String source) onSelected;
   final void Function(PlaylistRecord record, String source) onReplaced;
+  final Future<FilePickerResult?> Function()? pickPlaylistFile;
 
   @override
   State<PlaylistManagerScreen> createState() => _PlaylistManagerScreenState();
@@ -55,11 +56,12 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
 
   Future<void> _replace(PlaylistRecord record) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['m3u', 'm3u8'],
-        withData: true,
-      );
+      final result = await (widget.pickPlaylistFile?.call() ??
+          FilePicker.platform.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: ['m3u', 'm3u8'],
+            withData: true,
+          ));
       if (result == null || result.files.isEmpty) return;
       final bytes = result.files.single.bytes;
       if (bytes == null) {
