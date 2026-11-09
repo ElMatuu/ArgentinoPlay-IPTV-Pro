@@ -67,8 +67,8 @@ XmltvGuide parseXmltv(String source) {
 
 DateTime? parseXmltvTimestamp(String value) {
   final match = RegExp(
-    r'^(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})?'
-    r'(?:\\s*([+-])(\\d{2})(\\d{2}))?$',
+    r'^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?'
+    r'(?:\s*([+-])(\d{2})(\d{2}))?$',
   ).firstMatch(value.trim());
   if (match == null) {
     return null;
