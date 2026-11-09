@@ -75,4 +75,15 @@ void main() {
 
     expect(find.text('Todavía no hay favoritos'), findsOneWidget);
   });
+
+  testWidgets('selecting Programación destination shows its empty state',
+      (tester) async {
+    await _pumpHome(tester);
+
+    await tester.tap(find.text('Programación').last);
+    await tester.pump();
+
+    expect(find.text('Todavía no hay programación'), findsOneWidget);
+    expect(find.text('Importar guía XMLTV'), findsOneWidget);
+  });
 }
