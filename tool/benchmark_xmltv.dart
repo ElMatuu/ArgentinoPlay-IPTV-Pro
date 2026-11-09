@@ -59,7 +59,9 @@ void main() {
       guide.programmes.length != channelCount ||
       reusedMatches != playlistCount ||
       rebuiltMatches != playlistCount) {
-    throw StateError('Benchmark fixture or matcher produced unexpected results.');
+    throw StateError(
+      'Benchmark fixture or matcher produced unexpected results.',
+    );
   }
 
   print('XMLTV benchmark (informational; no timing threshold)');
