@@ -9,7 +9,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF16A085)),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF16A085),
+            ),
             focusColor: const Color(0xFF16A085).withValues(alpha: 0.22),
           ),
           home: Scaffold(
@@ -49,7 +51,9 @@ void main() {
 
   test('TV focus overlay uses a visible high-contrast theme color', () {
     final theme = ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF16A085)),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF16A085),
+      ),
       focusColor: const Color(0xFF16A085).withValues(alpha: 0.22),
     );
 
