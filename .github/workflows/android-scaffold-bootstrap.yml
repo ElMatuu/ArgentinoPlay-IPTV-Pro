@@ -142,7 +142,13 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test -f android/gradle/wrapper/gradle-wrapper.jar
+          test -f android/gradlew
+          test -f android/gradlew.bat
           git add android
+          # Flutter's template intentionally ignores the Gradle wrapper; it is required
+          # for reproducible builds from a clean clone, so force-add the wrapper files.
+          git add -f android/gradle/wrapper/gradle-wrapper.jar android/gradlew android/gradlew.bat
           git reset -- android/local.properties
           find android -name '*.iml' -print0 | xargs -0 -r git reset --
           if git diff --cached --quiet; then
