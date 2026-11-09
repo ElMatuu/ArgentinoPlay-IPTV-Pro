@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:argentino_play/domain/tv_channel.dart';
 import 'package:argentino_play/services/epg_matcher.dart';
 import 'package:argentino_play/services/xmltv_parser.dart';
@@ -64,14 +66,14 @@ void main() {
     );
   }
 
-  print('XMLTV benchmark (informational; no timing threshold)');
-  print('Guide: ${guide.channels.length} channels, '
+  stdout.writeln('XMLTV benchmark (informational; no timing threshold)');
+  stdout.writeln('Guide: ${guide.channels.length} channels, '
       '${guide.programmes.length} programmes');
-  print('Playlist: $playlistCount channels');
-  print('XML bytes: ${xml.length}');
-  print('Parse: ${parseWatch.elapsedMilliseconds} ms');
-  print('Build reusable name index: ${indexWatch.elapsedMicroseconds} µs');
-  print('Match with reused index: ${reusedWatch.elapsedMicroseconds} µs');
-  print('Match rebuilding index per lookup: '
+  stdout.writeln('Playlist: $playlistCount channels');
+  stdout.writeln('XML bytes: ${xml.length}');
+  stdout.writeln('Parse: ${parseWatch.elapsedMilliseconds} ms');
+  stdout.writeln('Build reusable name index: ${indexWatch.elapsedMicroseconds} µs');
+  stdout.writeln('Match with reused index: ${reusedWatch.elapsedMicroseconds} µs');
+  stdout.writeln('Match rebuilding index per lookup: '
       '${rebuiltWatch.elapsedMilliseconds} ms');
 }
