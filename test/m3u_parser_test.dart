@@ -94,5 +94,56 @@ void main() {
       expect(channels, hasLength(1));
       expect(channels.single.name, 'Canal válido');
     });
+
+    test('reports entries without a stream URL, including a trailing entry',
+        () {
+      const playlist = '#EXTM3U\n'
+          '#EXTINF:-1,Missing before next entry\n'
+          '#EXTINF:-1,Valid channel\n'
+          'https://example.org/live.m3u8\n'
+          '#EXTINF:-1,Missing at end\n';
+
+      final report = parseM3uWithReport(playlist);
+
+      expect(report.channels, hasLength(1));
+      expect(report.missingStreamUrlCount, 2);
+      expect(report.rejectedStreamUrlCount, 0);
+      expect(report.rejectedEntries, 2);
+    });
+
+    test('reports unsupported and credential-bearing stream URLs', () {
+      const playlist = '#EXTM3U\n'
+          '#EXTINF:-1,Local file\n'
+          'file:///etc/passwd\n'
+          '#EXTINF:-1,Credential URL\n'
+          'https://user:password@example.org/live.m3u8\n'
+          '#EXTINF:-1,Valid channel\n'
+          'https://example.org/live.m3u8\n';
+
+      final report = parseM3uWithReport(playlist);
+
+      expect(report.channels, hasLength(1));
+      expect(report.missingStreamUrlCount, 0);
+      expect(report.rejectedStreamUrlCount, 2);
+      expect(report.rejectedEntries, 2);
+    });
+
+    test('keeps parseM3u compatible with the report API', () {
+      const playlist = '#EXTM3U\n'
+          '#EXTINF:-1,Canal\n'
+          'https://example.org/live.m3u8\n';
+
+      final legacyChannels = parseM3u(playlist);
+      final reportChannels = parseM3uWithReport(playlist).channels;
+
+      expect(legacyChannels, hasLength(reportChannels.length));
+      expect(legacyChannels.single.name, reportChannels.single.name);
+      expect(legacyChannels.single.url, reportChannels.single.url);
+      expect(legacyChannels.single.logo, reportChannels.single.logo);
+      expect(legacyChannels.single.group, reportChannels.single.group);
+      expect(legacyChannels.single.tvgId, reportChannels.single.tvgId);
+      expect(legacyChannels.single.country, reportChannels.single.country);
+      expect(legacyChannels.single.language, reportChannels.single.language);
+    });
   });
 }
