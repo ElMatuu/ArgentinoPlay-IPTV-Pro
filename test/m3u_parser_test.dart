@@ -95,7 +95,8 @@ void main() {
       expect(channels.single.name, 'Canal válido');
     });
 
-    test('reports entries without a stream URL, including a trailing entry', () {
+    test('reports entries without a stream URL, including a trailing entry',
+        () {
       const playlist = '#EXTM3U\\n'
           '#EXTINF:-1,Missing before next entry\\n'
           '#EXTINF:-1,Valid channel\\n'
