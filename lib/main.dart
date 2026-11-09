@@ -756,7 +756,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           !identical(_controller, controller)) {
         return;
       }
-      await controller.play();
+      await initializePlayerWithTimeout(controller.play());
       if (!mounted ||
           generation != _startGeneration ||
           !identical(_controller, controller)) {
