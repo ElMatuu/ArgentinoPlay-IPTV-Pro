@@ -33,7 +33,8 @@ void main() {
     );
   });
 
-  test('rejects display names longer than the profile database limit', () async {
+  test('rejects display names longer than the profile database limit',
+      () async {
     await expectLater(
       auth.signUp(
         email: 'user@example.com',
