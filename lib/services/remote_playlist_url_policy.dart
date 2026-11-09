@@ -44,7 +44,7 @@ RemotePlaylistUrlDecision validateRemotePlaylistUrl(String input) {
       : unbracketedHost;
   final address = InternetAddress.tryParse(normalizedHost);
   final looksLikeNonStandardIpv4 = RegExp(
-    r'^(?:0x[0-9a-f]+|[0-9]+)(?:\\.(?:0x[0-9a-f]+|[0-9]+))*$',
+    r'^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*$',
     caseSensitive: false,
   ).hasMatch(normalizedHost);
   if (address == null &&
