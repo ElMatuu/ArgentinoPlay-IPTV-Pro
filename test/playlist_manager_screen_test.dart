@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:argentino_play/services/playlist_library_repository.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:argentino_play/services/playlist_manager_screen.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -56,7 +56,9 @@ class _FakePlaylistLibraryRepository extends PlaylistLibraryRepository {
     required int channelCount,
   }) async {
     if (channelCount < 1) {
-      throw const FormatException('Playlist must contain at least one channel.');
+      throw const FormatException(
+        'Playlist must contain at least one channel.',
+      );
     }
     final record = _records[id];
     if (record == null) {
@@ -244,11 +246,10 @@ void main() {
     expect(await repository.listPlaylists(), isEmpty);
   });
 
-
   testWidgets('replaces active playlist source and notifies the player state',
       (tester) async {
     const replacement =
-        '#EXTM3U\\n#EXTINF:-1,Canal Nuevo\\nhttps://example.org/new.m3u8\\n';
+        '#EXTM3U\n#EXTINF:-1,Canal Nuevo\nhttps://example.org/new.m3u8\n';
     PlaylistRecord? replacedRecord;
     String? replacedSource;
 
@@ -279,7 +280,10 @@ void main() {
     expect(replacedRecord?.channelCount, 1);
     expect(replacedSource, contains('Canal Nuevo'));
     expect(await repository.loadPlaylist('news'), contains('Canal Nuevo'));
-    expect(find.text('Lista "Noticias" actualizada: 1 canales.'), findsOneWidget);
+    expect(
+      find.text('Lista "Noticias" actualizada: 1 canal.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('selects and activates a saved playlist', (tester) async {
