@@ -90,7 +90,9 @@ class ProviderAuthorization {
     if (territories.any(
       (value) => value != '*' && !RegExp(r'^[A-Z]{2}$').hasMatch(value),
     )) {
-      throw const FormatException('Territories must be ISO alpha-2 codes or *.');
+      throw const FormatException(
+        'Territories must be ISO alpha-2 codes or *.',
+      );
     }
     if (expiresAt != null && !expiresAt!.isAfter(checkedAt)) {
       throw const FormatException(
