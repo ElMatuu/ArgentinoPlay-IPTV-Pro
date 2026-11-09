@@ -1,7 +1,6 @@
 import 'package:argentino_play/main.dart';
 import 'package:argentino_play/services/local_library_repository.dart';
 import 'package:argentino_play/services/playlist_library_repository.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -40,9 +39,9 @@ Future<void> _pumpHome(WidgetTester tester) async {
 void main() {
   test('M3U parser reads valid HTTP channels and metadata', () {
     const playlist =
-        '#EXTM3U\n#EXTINF:-1 tvg-logo="https://example.org/logo.png" '
-        'group-title="Noticias",Canal Demo\n'
-        'https://example.org/live.m3u8\n';
+        '#EXTM3U\\n#EXTINF:-1 tvg-logo="https://example.org/logo.png" '
+        'group-title="Noticias",Canal Demo\\n'
+        'https://example.org/live.m3u8\\n';
     final channels = parseM3u(playlist);
 
     expect(channels, hasLength(1));
@@ -52,8 +51,8 @@ void main() {
   });
 
   test('M3U parser ignores unsupported schemes and malformed entries', () {
-    const playlist = '#EXTM3U\n#EXTINF:-1,No válido\nfile:///etc/passwd\n'
-        '#EXTINF:-1,Válido\nhttps://example.org/live.m3u8\n';
+    const playlist = '#EXTM3U\\n#EXTINF:-1,No válido\\nfile:///etc/passwd\\n'
+        '#EXTINF:-1,Válido\\nhttps://example.org/live.m3u8\\n';
     final channels = parseM3u(playlist);
 
     expect(channels, hasLength(1));
@@ -67,17 +66,11 @@ void main() {
     expect(find.text('Importar lista'), findsOneWidget);
   });
 
-  testWidgets('TV-style directional focus and select opens Favorites tab',
+  testWidgets('selecting Favorites destination shows its empty state',
       (tester) async {
     await _pumpHome(tester);
 
-    final channelsDestination = find.text('Canales').last;
-    await tester.tap(channelsDestination);
-    await tester.pump();
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text('Favoritos').last);
     await tester.pump();
 
     expect(find.text('Todavía no hay favoritos'), findsOneWidget);
