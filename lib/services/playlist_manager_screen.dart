@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'm3u_parser.dart';
 import 'playlist_library_repository.dart';
 
 class PlaylistManagerScreen extends StatefulWidget {
@@ -8,11 +12,13 @@ class PlaylistManagerScreen extends StatefulWidget {
     required this.repository,
     required this.activePlaylistId,
     required this.onSelected,
+    required this.onReplaced,
   });
 
   final PlaylistLibraryRepository repository;
   final String? activePlaylistId;
   final void Function(PlaylistRecord record, String source) onSelected;
+  final void Function(PlaylistRecord record, String source) onReplaced;
 
   @override
   State<PlaylistManagerScreen> createState() => _PlaylistManagerScreenState();
@@ -44,6 +50,50 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
       Navigator.of(context).pop();
     } catch (error) {
       _message('No se pudo abrir la lista: $error');
+    }
+  }
+
+  Future<void> _replace(PlaylistRecord record) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['m3u', 'm3u8'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final bytes = result.files.single.bytes;
+      if (bytes == null) {
+        _message('No se pudo acceder al contenido del archivo.');
+        return;
+      }
+      if (bytes.lengthInBytes > PlaylistLibraryRepository.maxPlaylistBytes) {
+        _message('La lista supera el límite de importación de 5 MB.');
+        return;
+      }
+
+      final source = utf8.decode(bytes);
+      final channels = parseM3u(source);
+      if (channels.isEmpty) {
+        throw const FormatException(
+          'No se encontraron canales HTTP/HTTPS válidos en el archivo.',
+        );
+      }
+      final updated = await widget.repository.replacePlaylistSource(
+        id: record.id,
+        source: source,
+        channelCount: channels.length,
+      );
+      if (!mounted) return;
+      if (record.id == widget.activePlaylistId) {
+        widget.onReplaced(updated, source);
+      }
+      setState(_refresh);
+      _message('Lista "${updated.name}" actualizada: '
+          '${channels.length} canales.');
+    } on FormatException catch (error) {
+      _message(error.message);
+    } catch (error) {
+      _message('No se pudo reemplazar la lista: $error');
     }
   }
 
@@ -151,10 +201,12 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 trailing: PopupMenuButton<String>(
                   tooltip: 'Acciones de ${record.name}',
                   onSelected: (value) {
+                    if (value == 'replace') _replace(record);
                     if (value == 'rename') _rename(record);
                     if (value == 'delete') _delete(record);
                   },
                   itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'replace', child: Text('Reemplazar M3U/M3U8')),
                     PopupMenuItem(value: 'rename', child: Text('Renombrar')),
                     PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                   ],
