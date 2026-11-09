@@ -57,6 +57,21 @@ void main() {
       }
     });
 
+    test('rejects non-standard numeric IPv4 host forms', () {
+      for (final host in [
+        '127.1',
+        '0177.0.0.1',
+        '0x7f.0.0.1',
+        '2130706433',
+      ]) {
+        expect(
+          validateRemotePlaylistUrl('https://$host/list.m3u').allowed,
+          isFalse,
+          reason: 'Expected non-standard numeric host $host to be rejected',
+        );
+      }
+    });
+
     test('documents the DNS resolution boundary', () {
       final result =
           validateRemotePlaylistUrl('https://media.example.org/list.m3u');
