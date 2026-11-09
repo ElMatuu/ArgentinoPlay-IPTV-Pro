@@ -28,6 +28,10 @@ void main() {
         isFalse,
       );
       expect(
+        validateRemotePlaylistUrl('https://localhost../a').allowed,
+        isFalse,
+      );
+      expect(
         validateRemotePlaylistUrl('https://tv.localhost./a').allowed,
         isFalse,
       );
