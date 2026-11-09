@@ -88,8 +88,7 @@ void main() {
     expect(gateway.rows[deviceA]!['revoked_at'], isNotNull);
   });
 
-  test('keeps device ids separate when accounts change on one phone',
-      () async {
+  test('keeps device ids separate when accounts change on one phone', () async {
     await service.registerCurrentDevice(
       userId: userA,
       label: 'Teléfono',
