@@ -78,6 +78,11 @@ class SupabaseAuthService {
     );
   }
 
+  Future<UserResponse> updatePassword(String password) async {
+    _validatePassword(password);
+    return _client.auth.updateUser(UserAttributes(password: password));
+  }
+
   Future<void> signOut() => _client.auth.signOut();
 
   String _validateEmail(String value) {
