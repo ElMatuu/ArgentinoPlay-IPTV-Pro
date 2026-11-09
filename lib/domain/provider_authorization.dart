@@ -9,7 +9,13 @@ enum ProviderRight {
   epgMetadata,
 }
 
-enum ProviderPlatform { android, androidTv, ios, web, desktop }
+enum ProviderPlatform {
+  android,
+  androidTv,
+  ios,
+  web,
+  desktop,
+}
 
 class ProviderAuthorization {
   ProviderAuthorization({
@@ -77,7 +83,9 @@ class ProviderAuthorization {
       throw const FormatException('Rights evidence must be a safe HTTPS URL.');
     }
     if (rights.isEmpty || platforms.isEmpty || territories.isEmpty) {
-      throw const FormatException('Rights, platforms and territories are required.');
+      throw const FormatException(
+        'Rights, platforms and territories are required.',
+      );
     }
     if (territories.any(
       (value) => value != '*' && !RegExp(r'^[A-Z]{2}$').hasMatch(value),
@@ -85,7 +93,9 @@ class ProviderAuthorization {
       throw const FormatException('Territories must be ISO alpha-2 codes or *.');
     }
     if (expiresAt != null && !expiresAt!.isAfter(checkedAt)) {
-      throw const FormatException('Authorization expiry must follow its check date.');
+      throw const FormatException(
+        'Authorization expiry must follow its check date.',
+      );
     }
   }
 }
