@@ -87,7 +87,7 @@ void main() {
       final source = StringBuffer('#EXTM3U\\n');
       for (var index = 0; index < channelCount; index++) {
         source
-          ..writeln('#EXTINF:-1 tvg-id="channel.$index" group-title="Argentina",Canal $index')
+          ..writeln(\n            '#EXTINF:-1 tvg-id="channel.$index" group-title="Argentina",Canal $index',\n          )
           ..writeln('https://streams.example.org/$index/index.m3u8');
       }
 
