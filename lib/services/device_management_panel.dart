@@ -61,8 +61,7 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error =
-            'No se pudieron cargar los dispositivos. Revisá la conexión y los permisos de la cuenta.';
+        _error = 'No se pudieron cargar los dispositivos. Revisá la conexión y los permisos de la cuenta.';
       });
     }
   }
