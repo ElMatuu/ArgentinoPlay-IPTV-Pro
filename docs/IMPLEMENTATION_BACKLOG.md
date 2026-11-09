@@ -19,7 +19,7 @@
 - Endurecimiento de permisos: PR #5 contiene la migración CLI generada `20261109014013_tighten_authenticated_table_grants.sql` y su CI pasó completa. Se probó el SQL dentro de una transacción contra el proyecto alojado y se confirmó que conserva RLS, elimina `TRUNCATE` y limita cada tabla a los permisos requeridos; la transacción se revirtió, por lo que la base alojada todavía no cambió. Falta aprobación explícita antes de aplicar.
 - El bootstrap ahora considera disponible la nube solo después de que `Supabase.initialize` termina correctamente; se añadió validación de nombre de perfil hasta 80 caracteres y su prueba. La configuración Android de CI incluye launcher TV, identificador de aplicación y deep link de Auth.
 - El workflow de estas PR valida formato sin reescribir fuentes, analiza, prueba y compila APK debug. `pubspec.lock` ya está generado y versionado en PR #6, y su CI exige `flutter pub get --enforce-lockfile`; todavía no está incorporado en `main`. El APK sigue sin firma de release. El scaffold Android continúa generándose en CI.
-- PR #7 ahora incluye solicitud de recuperación, escucha del evento `passwordRecovery` y formulario para establecer una contraseña nueva. La allowlist de redirects del proyecto Auth alojado sigue sin verificarse; el flujo aún necesita CI, prueba de correo/deep link en dispositivo y verificación de la configuración del dashboard.
+- PR #7 incluye solicitud de recuperación, escucha del evento `passwordRecovery` y formulario para establecer una contraseña nueva. También incluye `DeviceRegistrationService`: ID UUID por cuenta, refresco de `last_seen_at`, listado y revocación, con pruebas unitarias aisladas. Todavía falta exponer la gestión de dispositivos en la pantalla de cuenta, probar RLS/revocación en el proyecto alojado y validar el flujo en hardware. La allowlist de redirects de Auth sigue sin verificarse.
 - CI verde no equivale a validación en teléfono o Android TV físico. No hay evidencia de prueba de reproducción real, navegación D-pad en hardware ni matriz de streams autorizados.
 
 ## Próximas acciones priorizadas
@@ -27,7 +27,7 @@
 1. Cerrar las ejecuciones CI actuales de PR #5–#7 y mantener el orden de integración #5 → #6 → #7, sin fusionar sin aprobación.
 2. Completar CI de la migración versionada en PR #5; revisar y aprobar su aplicación al proyecto alojado, y después validar grants y políticas RLS con dos usuarios distintos.
 3. Verificar la allowlist de redirects Auth alojada y probar el flujo de recuperación/cambio de contraseña y deep link en un dispositivo Android.
-4. Implementar registro/revocación de dispositivos y API transaccional push/pull, resolución de conflictos, idempotencia y borrado seguro; no subir URLs M3U ni credenciales.
+4. Exponer la gestión de dispositivos en la pantalla de cuenta; luego implementar API transaccional push/pull, resolución de conflictos, idempotencia y borrado seguro. No subir URLs M3U ni credenciales.
 5. Incorporar `pubspec.lock` y definir el scaffold Android reproducible para builds locales.
 6. Completar pruebas adversariales de M3U/XMLTV, persistencia, reproducción y recuperación de red.
 7. Validar Android TV con D-pad y un dispositivo/emulador; preparar release firmado con credenciales bajo control del propietario.
