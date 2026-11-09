@@ -90,7 +90,8 @@ class _AccountScreenState extends State<AccountScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _message = 'No se pudo completar la operación. Revisá la conexión e intentá nuevamente.';
+          _message =
+              'No se pudo completar la operación. Revisá la conexión e intentá nuevamente.';
           _messageIsError = true;
         });
       }
@@ -306,9 +307,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 _message!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: _messageIsError
-                      ? colorScheme.error
-                      : colorScheme.primary,
+                  color:
+                      _messageIsError ? colorScheme.error : colorScheme.primary,
                 ),
               ),
             ],
