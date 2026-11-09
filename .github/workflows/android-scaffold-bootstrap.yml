@@ -1,0 +1,243 @@
+name: Android scaffold bootstrap
+
+on:
+  push:
+    branches:
+      - android/permanent-platform-scaffold
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-scaffold-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  generate-commit-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scaffold branch
+        uses: actions/checkout@v5
+        with:
+          ref: android/permanent-platform-scaffold
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9'
+          cache: true
+
+      - name: Generate Android platform project
+        run: flutter create --platforms=android --project-name argentino_play .
+
+      - name: Configure application identity and Android TV launcher
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          import sys
+
+          root = Path("android")
+          manifest = root / "app/src/main/AndroidManifest.xml"
+          source = manifest.read_text(encoding="utf-8")
+          if "<manifest" not in source or "</manifest>" not in source:
+              sys.exit("::error::Android manifest template is invalid.")
+
+          additions = [
+              ('android.permission.INTERNET', '    <uses-permission android:name="android.permission.INTERNET" />'),
+              ('android.software.leanback', '    <uses-feature android:name="android.software.leanback" android:required="false" />'),
+              ('android.hardware.touchscreen', '    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />'),
+          ]
+          for marker, element in additions:
+              if marker not in source:
+                  source = source.replace("</manifest>", element + "\n</manifest>", 1)
+
+          source = source.replace('android:label="argentino_play"', 'android:label="ArgentinoPlay"')
+          if "android.intent.category.LEANBACK_LAUNCHER" not in source:
+              launcher_activity = re.search(
+                  r'<activity\b(?:(?!</activity>).)*android.intent.category.LAUNCHER(?:(?!</activity>).)*</activity>',
+                  source,
+                  re.S,
+              )
+              if launcher_activity is None:
+                  sys.exit("::error::Could not locate the launcher activity for Android TV.")
+              tv_filter = """
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                      </intent-filter>
+              """
+              block = launcher_activity.group(0)
+              block = block.replace("</activity>", tv_filter + "\n    </activity>", 1)
+              source = source[:launcher_activity.start()] + block + source[launcher_activity.end():]
+
+          manifest.write_text(source, encoding="utf-8")
+
+          gradle = root / "app/build.gradle.kts"
+          gradle_source = gradle.read_text(encoding="utf-8")
+          gradle_lines = gradle_source.splitlines()
+          for key in ("applicationId", "namespace"):
+              matches = [
+                  index for index, line in enumerate(gradle_lines)
+                  if key in line and "=" in line and not line.lstrip().startswith("//")
+              ]
+              if len(matches) != 1:
+                  sys.exit("::error::Could not identify " + key + " exactly once.")
+              index = matches[0]
+              prefix = gradle_lines[index].split(key, 1)[0] + key + " = "
+              gradle_lines[index] = prefix + '"com.argentinoplay.app"'
+
+          sdk_matches = [
+              index for index, line in enumerate(gradle_lines)
+              if "compileSdk" in line and "=" in line and not line.lstrip().startswith("//")
+          ]
+          if len(sdk_matches) != 1:
+              sys.exit("::error::Could not identify compileSdk exactly once.")
+          sdk_index = sdk_matches[0]
+          sdk_prefix = gradle_lines[sdk_index].split("compileSdk", 1)[0] + "compileSdk = "
+          gradle_lines[sdk_index] = sdk_prefix + "36"
+          gradle_source = "\n".join(gradle_lines) + "\n"
+          gradle_lines = gradle_source.splitlines()
+          signing_lines = [
+              index for index, line in enumerate(gradle_lines)
+              if 'signingConfig = signingConfigs.getByName("debug")' in line
+          ]
+          if signing_lines:
+              if len(signing_lines) != 1:
+                  sys.exit("::error::Multiple debug release signing declarations found.")
+              signing_index = signing_lines[0]
+              starts = [
+                  index for index, line in enumerate(gradle_lines[:signing_index])
+                  if line == "    buildTypes {"
+              ]
+              ends = [
+                  index for index, line in enumerate(gradle_lines[signing_index + 1:], signing_index + 1)
+                  if line == "    }"
+              ]
+              if not starts or not ends:
+                  sys.exit("::error::Could not safely locate generated release signing block.")
+              start_index = starts[-1]
+              end_index = ends[0]
+              del gradle_lines[start_index:end_index + 1]
+              gradle_lines.insert(
+                  start_index,
+                  "    // Release builds intentionally remain unsigned until protected signing is configured.",
+              )
+              gradle_source = "\n".join(gradle_lines) + "\n"
+          gradle.write_text(gradle_source, encoding="utf-8")
+
+          old = root / "app/src/main/kotlin/com/example/argentino_play/MainActivity.kt"
+          new = root / "app/src/main/kotlin/com/argentinoplay/app/MainActivity.kt"
+          if new.is_file():
+              kotlin = new.read_text(encoding="utf-8")
+              if kotlin.count("package com.argentinoplay.app") != 1:
+                  sys.exit("::error::Unexpected existing Kotlin package declaration.")
+          elif old.is_file():
+              kotlin = old.read_text(encoding="utf-8")
+              if kotlin.count("package com.example.argentino_play") != 1:
+                  sys.exit("::error::Unexpected Kotlin package declaration.")
+              new.parent.mkdir(parents=True, exist_ok=True)
+              new.write_text(kotlin.replace(
+                  "package com.example.argentino_play",
+                  "package com.argentinoplay.app",
+                  1,
+              ), encoding="utf-8")
+              old.unlink()
+          else:
+              sys.exit("::error::Kotlin entry point is missing.")
+
+          # flutter create can recreate a second entry point under a different
+          # package. Remove that known obsolete file after validating its package.
+          obsolete = root / "app/src/main/kotlin/com/argentinoplay/argentino_play/MainActivity.kt"
+          if obsolete.is_file():
+              obsolete_source = obsolete.read_text(encoding="utf-8")
+              if obsolete_source.count("package com.argentinoplay.argentino_play") != 1:
+                  sys.exit("::error::Unexpected obsolete Kotlin package declaration.")
+              obsolete.unlink()
+
+          properties = root / "gradle.properties"
+          lines = properties.read_text(encoding="utf-8").splitlines()
+          lines = [line for line in lines if not line.startswith("org.gradle.warning.mode=")]
+          lines.append("org.gradle.warning.mode=all")
+          properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          checks = [
+              'applicationId = "com.argentinoplay.app"' in gradle_source,
+              'namespace = "com.argentinoplay.app"' in gradle_source,
+              "package com.argentinoplay.app" in new.read_text(encoding="utf-8"),
+              "android.intent.category.LEANBACK_LAUNCHER" in source,
+              "android.permission.INTERNET" in source,
+              'signingConfig = signingConfigs.getByName("debug")' not in gradle_source,
+          ]
+          if not all(checks):
+              sys.exit("::error::Android identity or launcher verification failed.")
+          print("Android identity, Internet permission and TV launcher verified.")
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Validate Dart formatting
+        run: dart format --set-exit-if-changed --output=none lib test
+
+      - name: Static analysis
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Automated tests
+        run: flutter test --reporter expanded
+
+      - name: Build generated Android project
+        run: flutter build apk --debug
+
+      - name: Commit complete Android platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test -f android/gradle/wrapper/gradle-wrapper.jar
+          test -f android/gradlew
+          test -f android/gradlew.bat
+          git add android
+          git add -f android/gradle/wrapper/gradle-wrapper.jar android/gradlew android/gradlew.bat
+          git reset -- android/local.properties
+          find android -name '*.iml' -print0 | xargs -0 -r git reset --
+          if git diff --cached --quiet; then
+            echo "Android scaffold is already committed."
+          else
+            git commit -m "build(android): commit reproducible Android platform scaffold"
+            git push origin HEAD:android/permanent-platform-scaffold
+          fi
+
+      - name: Verify committed scaffold from a clean checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/argentino-clean
+          git clone --no-local . /tmp/argentino-clean
+          cd /tmp/argentino-clean
+          dart pub get
+          git checkout -- analysis_options.yaml
+          test -f android/gradle/wrapper/gradle-wrapper.jar
+          test -x android/gradlew
+          test -f android/gradlew.bat
+          test ! -e android/local.properties
+          if find android -name '*.iml' -print -quit | grep -q .; then
+            echo "::error::Machine-specific IDE files must not be committed."
+            exit 1
+          fi
+          flutter build apk --debug
+
+      - name: Upload verified debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: argentino-play-clean-checkout-debug-apk
+          path: /tmp/argentino-clean/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

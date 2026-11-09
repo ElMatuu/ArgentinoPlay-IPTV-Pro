@@ -19,10 +19,12 @@ PlayerRemoteAction? playerRemoteActionForKey(LogicalKeyboardKey key) {
   }
   if (key == LogicalKeyboardKey.mediaPlay) return PlayerRemoteAction.play;
   if (key == LogicalKeyboardKey.mediaPause) return PlayerRemoteAction.pause;
-  if (key == LogicalKeyboardKey.arrowLeft) {
+  if (key == LogicalKeyboardKey.arrowLeft ||
+      key == LogicalKeyboardKey.mediaRewind) {
     return PlayerRemoteAction.seekBackward;
   }
-  if (key == LogicalKeyboardKey.arrowRight) {
+  if (key == LogicalKeyboardKey.arrowRight ||
+      key == LogicalKeyboardKey.mediaFastForward) {
     return PlayerRemoteAction.seekForward;
   }
   if (key == LogicalKeyboardKey.goBack ||

@@ -6,7 +6,10 @@
 - Merge commit: `cbe7821302af21bf52ae854d92ffb8af0761bd10`.
 - Post-merge GitHub Actions run #178 completed successfully: Android scaffold generation/configuration, Dart formatting, static analysis, automated tests, debug APK build and artifact upload.
 - The merged Flutter client includes M3U/M3U8 and XMLTV parsing, local playlist/guide persistence, multi-playlist management, favorites/search/guide UI, player startup/retry race protection, bounded seeking and isolated remote-key mapping tests.
-- Android TV manifest configuration is currently applied to a generated scaffold during CI. The generated `android/` directory is not committed as a maintained platform project.
+- The complete Flutter-generated `android/` platform scaffold is committed on the dedicated Android scaffold branch in PR #40, including Gradle wrapper files, manifest/resources and Kotlin entry point.
+- Latest end-to-end clean-clone verification passed on GitHub Actions run [#42692531542](https://github.com/ElMatuu/ArgentinoPlay-IPTV-Pro/actions/runs/42692531542) for commit `288a3683a705c0af162f724c65bad81d6f181046`. Formatting, static analysis, automated tests, Android build, clean-checkout verification and debug APK upload all completed successfully.
+- Latest verified debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13707667707`, 83,707,944 bytes; SHA-256 `299aa6f495f7a0364b1ad75109a12da207b49eb5fc640bef9af1ba002ec18d83`). It expires 2026-11-23 and is a CI debug artifact, not a signed release.
+- The generated Android Gradle configuration intentionally leaves the release variant unsigned. The previous generated debug-keystore signing assignment has been removed; protected production signing is still required before any release.
 
 ## What a green CI run proves — and what it does not
 
@@ -15,17 +18,20 @@ CI verifies source formatting, static analysis, automated tests, Android project
 ## Remaining work, kept separate by area
 
 ### A. Android project ownership
-1. Review the exact Flutter-generated Android scaffold against the pinned Flutter toolchain.
-2. Commit the complete, maintainable Android platform directory, including the Gradle wrapper JAR and scripts, Gradle configuration, manifest, resources and Kotlin entry point.
-3. Keep machine-local files (for example `local.properties`), signing keys and credentials out of source control.
-4. Verify a clean checkout can build without generating missing project files.
+**Status: completed on PR #40 branch; merge still pending.**
 
-**Exit criterion:** a clean clone contains a complete Android project and builds the debug APK without `flutter create` mutating or generating tracked platform files.
+1. Generated and committed the Android platform directory with the pinned Flutter 3.47.9 toolchain, Gradle wrapper JAR/scripts, Gradle configuration, manifest, resources and Kotlin entry point.
+2. Verified `namespace`, `applicationId` and Kotlin package are consistently `com.argentinoplay.app`.
+3. Added Internet permission, Android TV Leanback launcher declaration and optional touchscreen feature.
+4. Kept `android/local.properties`, IDE files and signing credentials out of the committed scaffold.
+5. Passed a clean Git clone build without running `flutter create` in the clone; debug APK artifact uploaded by CI.
+
+**Exit criterion:** met by successful clean-clone build in run #42665404448. PR #40 remains a draft and must be reviewed before merging; this does not constitute a signed release or physical-device acceptance.
 
 ### B. Android TV interaction
 1. Audit focus ownership so media seeking does not swallow D-pad navigation events.
 2. Implement deterministic focus traversal, visible focus indication and a usable Back/exit behavior. The player now maps Android GoBack, Escape and browser-back keys to route navigation, including while playback is loading or has failed.
-3. Add widget tests for focus movement and remote-key behavior. Unit tests now cover the three Back key mappings.
+3. Add widget tests for focus movement and remote-key behavior. Current unit tests cover select/enter/space/media toggle, play/pause, arrow and dedicated media seek keys, Back mappings, and ignored navigation keys. Seek calculation tests cover forward/backward offsets, zero/end clamping, invalid durations, and millisecond precision. A reusable TV button now exposes a 3 px focused outline and tests cover its focus styling and Tab traversal. Physical D-pad traversal on Android TV remains to be accepted.
 4. Validate on a physical Android TV device or emulator with a remote; document any unsupported keys.
 
 **Exit criterion:** tested focus movement and player controls on a TV-sized interface, plus recorded device/emulator acceptance results.
@@ -46,8 +52,9 @@ CI verifies source formatting, static analysis, automated tests, Android project
 ### E. Security, privacy and release
 1. Before enabling remote URL import, enforce HTTPS policy as appropriate, reject loopback/private/link-local destinations, validate every redirect, cap response size and enforce connection/read timeouts.
 2. Review dependencies, licenses, permissions, diagnostics and privacy disclosures.
-3. Keep signing credentials in protected CI secrets; never commit keystores or passwords.
-4. Produce signed release artifacts and complete installation/upgrade/rollback checks on physical devices.
+3. The Android release variant is intentionally unsigned; it must never fall back to the debug keystore. Configure protected production signing before publishing.
+4. Keep signing credentials in protected CI secrets; never commit keystores or passwords.
+5. Produce signed release artifacts and complete installation/upgrade/rollback checks on physical devices.
 
 ## Content rights
 
@@ -56,3 +63,12 @@ Use only streams that are owned, public-domain, explicitly licensed, or otherwis
 ## Release gate
 
 Do not label the app production-ready until the Android project is reproducible from a clean clone, playback and TV acceptance checks are complete, security/privacy and content-rights reviews pass, and signed release artifacts are verified.
+
+
+Android TV focus: Home Material controls use a visible focus overlay; automated Down-key traversal coverage added. Physical Android TV/emulator acceptance remains pending.
+
+## Latest clean-checkout verification (2026-11-09)
+
+- GitHub Actions run [#42695634452](https://github.com/ElMatuu/ArgentinoPlay-IPTV-Pro/actions/runs/42695634452) passed on commit `cba462c43d0cbd850d81baed41d76bbe48545869`. All stages passed: Android scaffold generation/configuration, dependency installation, Dart formatting, static analysis, automated tests, Android debug build, scaffold commit, clean-checkout verification and APK upload.
+- Latest CI debug artifact: `argentino-play-clean-checkout-debug-apk`, artifact ID `13708664792`, 83,707,941 bytes, SHA-256 `63735d1b34d2d123123788ca559754405f95fb4a7ceb052635536582f03ddee2`. It expires 2026-11-23.
+- This artifact is an unsigned debug build for testing, not a production release. Production signing and physical-device acceptance remain release gates.

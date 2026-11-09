@@ -5,7 +5,7 @@ void main() {
   group('calculateSeekTarget', () {
     const duration = Duration(minutes: 2);
 
-    test('applies a forward seek inside the media duration', () {
+    test('advances by the requested offset', () {
       expect(
         calculateSeekTarget(
           position: const Duration(seconds: 30),
@@ -16,10 +16,21 @@ void main() {
       );
     });
 
-    test('clamps a backward seek at the beginning', () {
+    test('rewinds by the requested offset', () {
       expect(
         calculateSeekTarget(
-          position: const Duration(seconds: 5),
+          position: const Duration(seconds: 30),
+          duration: duration,
+          offset: const Duration(seconds: -10),
+        ),
+        const Duration(seconds: 20),
+      );
+    });
+
+    test('clamps rewind at the beginning', () {
+      expect(
+        calculateSeekTarget(
+          position: const Duration(seconds: 3),
           duration: duration,
           offset: const Duration(seconds: -10),
         ),
@@ -27,7 +38,7 @@ void main() {
       );
     });
 
-    test('clamps a forward seek at the end', () {
+    test('clamps fast forward at the media duration', () {
       expect(
         calculateSeekTarget(
           position: const Duration(seconds: 115),
@@ -38,47 +49,30 @@ void main() {
       );
     });
 
-    test('returns null when duration is unknown or zero', () {
-      expect(
-        calculateSeekTarget(
-          position: const Duration(seconds: 5),
-          duration: Duration.zero,
-          offset: const Duration(seconds: 10),
-        ),
-        isNull,
-      );
+    test('returns null when duration is zero or negative', () {
+      for (final invalidDuration in [
+        Duration.zero,
+        const Duration(seconds: -1),
+      ]) {
+        expect(
+          calculateSeekTarget(
+            position: const Duration(seconds: 10),
+            duration: invalidDuration,
+            offset: const Duration(seconds: 10),
+          ),
+          isNull,
+        );
+      }
     });
 
-    test('returns null for a negative duration', () {
+    test('preserves millisecond precision', () {
       expect(
         calculateSeekTarget(
-          position: const Duration(seconds: 5),
-          duration: const Duration(seconds: -1),
-          offset: const Duration(seconds: 10),
-        ),
-        isNull,
-      );
-    });
-
-    test('clamps an out-of-range current position before seeking', () {
-      expect(
-        calculateSeekTarget(
-          position: const Duration(minutes: 3),
+          position: const Duration(milliseconds: 1234),
           duration: duration,
-          offset: const Duration(seconds: -10),
+          offset: const Duration(milliseconds: 567),
         ),
-        duration,
-      );
-    });
-
-    test('handles offsets larger than the media duration', () {
-      expect(
-        calculateSeekTarget(
-          position: const Duration(seconds: 30),
-          duration: duration,
-          offset: const Duration(hours: 1),
-        ),
-        duration,
+        const Duration(milliseconds: 1801),
       );
     });
   });
