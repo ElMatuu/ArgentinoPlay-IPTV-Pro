@@ -101,7 +101,8 @@ bool _isNonPublicAddress(InternetAddress address) {
           bytes[1] == 0x01 &&
           bytes[2] == 0x0d &&
           bytes[3] == 0xb8) ||
-      (bytes[0] == 0x3f && (bytes[1] & 0xf0) == 0xf0); // 2001:db8::/32, 3fff::/20
+      (bytes[0] == 0x3f &&
+          (bytes[1] & 0xf0) == 0xf0); // 2001:db8::/32, 3fff::/20
   final isSixToFour = bytes[0] == 0x20 && bytes[1] == 0x02;
   if (isProtocolAssignment || isDocumentation || isSixToFour) return true;
 
