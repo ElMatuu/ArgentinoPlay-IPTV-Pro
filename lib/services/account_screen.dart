@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'device_management_panel.dart';
 import 'supabase_auth_service.dart';
 import 'supabase_bootstrap.dart';
 
@@ -324,6 +325,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       const Icon(Icons.verified_user_outlined, size: 36),
                       const SizedBox(height: 12),
                       Text(user.email ?? 'Cuenta autenticada'),
+                      const SizedBox(height: 12),
+                      DeviceManagementPanel(userId: user.id),
                       const SizedBox(height: 16),
                       FilledButton.icon(
                         onPressed: _busy ? null : _signOut,
