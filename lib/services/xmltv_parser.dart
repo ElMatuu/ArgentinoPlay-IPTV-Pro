@@ -1,10 +1,19 @@
+import 'dart:convert';
+
 import 'package:xml/xml.dart';
 
 import '../domain/epg.dart';
 
+/// Maximum UTF-8 size accepted by the XMLTV parser (10 MB).
+const int maxXmltvSourceBytes = 10 * 1024 * 1024;
+
 /// Parses XMLTV data. Timestamps without an explicit offset are interpreted
 /// as UTC to keep schedule comparisons deterministic across devices.
 XmltvGuide parseXmltv(String source) {
+  if (utf8.encode(source).length > maxXmltvSourceBytes) {
+    throw const FormatException('XMLTV guide exceeds the 10 MB limit.');
+  }
+
   final document = XmlDocument.parse(source);
   final channels = <String, EpgChannel>{};
   final programmes = <EpgProgramme>[];
