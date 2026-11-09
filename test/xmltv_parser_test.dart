@@ -48,6 +48,19 @@ void main() {
     );
   });
 
+  test('rejects XMLTV input larger than the parser size limit', () {
+    final padding = List<String>.filled(1024, 'x').join();
+    final oversized = StringBuffer('<tv>');
+    for (var index = 0; index < 10241; index++) {
+      oversized.write(padding);
+    }
+
+    expect(
+      () => parseXmltv(oversized.toString()),
+      throwsFormatException,
+    );
+  });
+
   test('ignores programmes with missing identifiers or invalid intervals', () {
     const xmltv = '<tv>'
         '<programme start="20260101130000 +0000" '
