@@ -20,7 +20,9 @@ The project was inspected before applying the migration; it had no existing appl
 - user_preferences: small JSON preferences, bounded in size.
 - sync_receipts and sync_cursors: initial idempotency/cursor records for a later transactional sync API.
 
-All seven tables have Row Level Security enabled. Policies scope records to `auth.uid()` and device ownership. Anonymous table privileges are revoked. The auth profile trigger function is not directly executable by anon/authenticated roles.
+All seven tables have Row Level Security enabled. Owner policies scope user rows to `auth.uid()`. Sync receipt creation and sync cursor writes additionally require an active device. Anonymous table privileges are revoked. The auth profile trigger function is not directly executable by anon/authenticated roles.
+
+A follow-up migration, `20261109021431_tighten_authenticated_table_grants.sql`, revokes broad table grants from `PUBLIC`, `anon` and `authenticated`, then grants only the operations required by each table. This migration is committed to the infrastructure PR but has **not** been applied to the hosted project. Review and deploy it through the migration workflow before enabling cloud sync.
 
 ## Validation performed
 
@@ -35,7 +37,7 @@ All seven tables have Row Level Security enabled. Policies scope records to `aut
 
 - Transactional push/pull sync API, conflict resolver, tombstone retention or Edge Functions.
 - Flutter sign-in/sign-up screens and account recovery.
-- Device registration/revocation flows in the app.
+- Device registration and device-list/revocation UI are being implemented in the Flutter auth PR; hosted RLS and physical-device checks remain pending.
 - SQLite local database migration and live synchronization.
 - End-to-end tests with multiple users/devices and cross-user isolation.
 
