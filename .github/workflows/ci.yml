@@ -77,7 +77,7 @@ jobs:
               </intent-filter>"""
           source = source[:match.end()] + tv_launcher + source[match.end():]
 
-          application_pattern = re.compile(r'<application\\b[^>]*>')
+          application_pattern = re.compile(r'<application\b[^>]*>')
           application_match = application_pattern.search(source)
           if application_match is None or source.count('<application') != 1:
               print("::error::No se encontró un bloque application único.")
