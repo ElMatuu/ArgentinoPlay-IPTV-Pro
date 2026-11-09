@@ -201,9 +201,21 @@ jobs:
           java -version
           echo "Android SDK: ${ANDROID_HOME:-${ANDROID_SDK_ROOT:-not-set}}"
 
-      - name: Validate Dart formatting without rewriting sources
+      - name: Generate exact Dart formatting patch
         id: format
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          set -euo pipefail
+          dart format lib test
+          git diff --binary -- lib test > /tmp/dart-format.patch
+          echo "Generated formatting patch ($(wc -c < /tmp/dart-format.patch) bytes)."
+
+      - name: Upload Dart formatting patch for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: dart-format-patch
+          path: /tmp/dart-format.patch
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Static analysis (warnings and infos are fatal)
         id: analyze
