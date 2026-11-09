@@ -30,7 +30,7 @@ CI verifies source formatting, static analysis, automated tests, Android project
 ### B. Android TV interaction
 1. Audit focus ownership so media seeking does not swallow D-pad navigation events.
 2. Implement deterministic focus traversal, visible focus indication and a usable Back/exit behavior. The player now maps Android GoBack, Escape and browser-back keys to route navigation, including while playback is loading or has failed.
-3. Add widget tests for focus movement and remote-key behavior. Current unit tests cover select/enter/space/media toggle, play/pause, arrow and dedicated media seek keys, Back mappings, and ignored navigation keys. Seek calculation tests cover forward/backward offsets, zero/end clamping, invalid durations, and millisecond precision. Actual focus traversal remains untested.
+3. Add widget tests for focus movement and remote-key behavior. Current unit tests cover select/enter/space/media toggle, play/pause, arrow and dedicated media seek keys, Back mappings, and ignored navigation keys. Seek calculation tests cover forward/backward offsets, zero/end clamping, invalid durations, and millisecond precision. A reusable TV button now exposes a 3 px focused outline and tests cover its focus styling and Tab traversal. Physical D-pad traversal on Android TV remains to be accepted.
 4. Validate on a physical Android TV device or emulator with a remote; document any unsupported keys.
 
 **Exit criterion:** tested focus movement and player controls on a TV-sized interface, plus recorded device/emulator acceptance results.
