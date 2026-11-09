@@ -23,10 +23,11 @@ CI verifies source formatting, static analysis, automated tests, Android project
 **Exit criterion:** a clean clone contains a complete Android project and builds the debug APK without `flutter create` mutating or generating tracked platform files.
 
 ### B. Android TV interaction
-1. Audit focus ownership so media seeking does not swallow D-pad navigation events.
-2. Implement deterministic focus traversal, visible focus indication and a usable Back/exit behavior. The player now maps Android GoBack, Escape and browser-back keys to route navigation, including while playback is loading or has failed.
-3. Add widget tests for focus movement and remote-key behavior. Unit tests now cover the three Back key mappings.
-4. Validate on a physical Android TV device or emulator with a remote; document any unsupported keys.
+1. Provide a dedicated Android TV launcher banner (320 × 180 dp) alongside the LEANBACK_LAUNCHER entry point; CI validates the manifest reference and vector resource XML.
+2. Audit focus ownership so media seeking does not swallow D-pad navigation events.
+3. Implement deterministic focus traversal, visible focus indication and a usable Back/exit behavior. The player now maps Android GoBack, Escape and browser-back keys to route navigation, including while playback is loading or has failed.
+4. Add widget tests for focus movement and remote-key behavior. Unit tests now cover the three Back key mappings.
+5. Validate on a physical Android TV device or emulator with a remote; document any unsupported keys.
 
 **Exit criterion:** tested focus movement and player controls on a TV-sized interface, plus recorded device/emulator acceptance results.
 
