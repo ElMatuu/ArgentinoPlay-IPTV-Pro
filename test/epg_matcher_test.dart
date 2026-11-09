@@ -85,6 +85,27 @@ void main() {
 
       expect(matchEpgChannel(channel, guide), isNull);
     });
+
+    test('reuses an index while preserving safe matching rules', () {
+      final matcher = EpgChannelMatcher(guide);
+      const uniqueName = TvChannel(
+        name: 'DEPORTES',
+        url: 'https://example.org/sports.m3u8',
+      );
+      const ambiguousName = TvChannel(
+        name: 'Noticias Argentina',
+        url: 'https://example.org/news.m3u8',
+      );
+      const unknownId = TvChannel(
+        name: 'Deportes',
+        url: 'https://example.org/unknown.m3u8',
+        tvgId: 'missing.id',
+      );
+
+      expect(matcher.match(uniqueName)?.id, 'sports.ar');
+      expect(matcher.match(ambiguousName), isNull);
+      expect(matcher.match(unknownId), isNull);
+    });
   });
 
   test('currentProgrammeForChannel returns the programme at the instant', () {
