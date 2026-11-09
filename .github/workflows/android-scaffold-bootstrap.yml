@@ -156,6 +156,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p /tmp/argentino-clean
           git archive HEAD | tar -x -C /tmp/argentino-clean
           cd /tmp/argentino-clean
           flutter pub get
