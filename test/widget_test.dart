@@ -20,6 +20,22 @@ class _EmptyLibraryRepository extends LocalLibraryRepository {
   Future<String?> loadGuide() async => null;
 }
 
+Future<void> _pumpHome(WidgetTester tester) async {
+  SharedPreferences.setMockInitialValues({});
+  await tester.pumpWidget(
+    ArgentinoPlayApp(
+      libraryRepository: _EmptyLibraryRepository(),
+      playlistRepository: _EmptyPlaylistRepository(),
+    ),
+  );
+
+  // Avoid pumpAndSettle because indeterminate progress indicators can keep
+  // scheduling frames while the app is loading.
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.pump();
+}
+
 void main() {
   test('M3U parser reads valid HTTP channels and metadata', () {
     const playlist =
@@ -44,21 +60,30 @@ void main() {
   });
 
   testWidgets('home screen shows playlist import empty state', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(
-      ArgentinoPlayApp(
-        libraryRepository: _EmptyLibraryRepository(),
-        playlistRepository: _EmptyPlaylistRepository(),
-      ),
-    );
-
-    // Do not use pumpAndSettle here: indeterminate progress indicators can
-    // keep scheduling frames and make a widget test wait forever.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump();
+    await _pumpHome(tester);
 
     expect(find.text('Tu catálogo empieza acá'), findsOneWidget);
     expect(find.text('Importar lista'), findsOneWidget);
+  });
+
+  testWidgets('selecting Favorites destination shows its empty state',
+      (tester) async {
+    await _pumpHome(tester);
+
+    await tester.tap(find.text('Favoritos').last);
+    await tester.pump();
+
+    expect(find.text('Todavía no hay favoritos'), findsOneWidget);
+  });
+
+  testWidgets('selecting Programación destination shows its empty state',
+      (tester) async {
+    await _pumpHome(tester);
+
+    await tester.tap(find.text('Programación').last);
+    await tester.pump();
+
+    expect(find.text('Todavía no hay programación'), findsOneWidget);
+    expect(find.text('Importar guía XMLTV'), findsOneWidget);
   });
 }
