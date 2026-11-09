@@ -98,5 +98,12 @@ bool _isNonPublicAddress(InternetAddress address) {
     final mapped = InternetAddress.fromRawAddress(bytes.sublist(12));
     return _isNonPublicAddress(mapped);
   }
+
+  // Deprecated IPv4-compatible IPv6 addresses (::a.b.c.d) can encode a
+  // non-public IPv4 destination without using the mapped-address marker.
+  // Reject this obsolete form rather than treating it as globally routable.
+  final ipv4Compatible = bytes.take(12).every((byte) => byte == 0);
+  if (ipv4Compatible) return true;
+
   return allZero || loopback || uniqueLocal || linkLocal || multicast;
 }
