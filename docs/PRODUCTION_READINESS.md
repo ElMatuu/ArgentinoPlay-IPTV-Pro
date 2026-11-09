@@ -8,7 +8,7 @@
 - The merged Flutter client includes M3U/M3U8 and XMLTV parsing, local playlist/guide persistence, multi-playlist management, favorites/search/guide UI, player startup/retry race protection, bounded seeking and isolated remote-key mapping tests.
 - The complete Flutter-generated `android/` platform scaffold is committed on the dedicated Android scaffold branch in PR #40, including Gradle wrapper files, manifest/resources and Kotlin entry point.
 - Latest end-to-end clean-clone verification passed on GitHub Actions run [#42692531542](https://github.com/ElMatuu/ArgentinoPlay-IPTV-Pro/actions/runs/42692531542) for commit `288a3683a705c0af162f724c65bad81d6f181046`. Formatting, static analysis, automated tests, Android build, clean-checkout verification and debug APK upload all completed successfully.
-- Latest verified debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13707667707`, 83,707,944 bytes; SHA-256 `299aa6f495f7a0364b1ad75109a12da207b49eb5fc640bef9ba1ba002ec18d83`). It expires 2026-11-23 and is a CI debug artifact, not a signed release.
+- Latest verified debug APK artifact: `argentino-play-clean-checkout-debug-apk` (artifact ID `13707667707`, 83,707,944 bytes; SHA-256 `299aa6f495f7a0364b1ad75109a12da207b49eb5fc640bef9af1ba002ec18d83`). It expires 2026-11-23 and is a CI debug artifact, not a signed release.
 - The generated Android Gradle configuration intentionally leaves the release variant unsigned. The previous generated debug-keystore signing assignment has been removed; protected production signing is still required before any release.
 
 ## What a green CI run proves — and what it does not
