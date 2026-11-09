@@ -17,7 +17,7 @@ CI verifies source formatting, static analysis, automated tests, Android project
 ## Remaining work, kept separate by area
 
 ### A. Android project ownership
-<badge>Completed on PR #40 branch; merge still pending</badge>
+**Status: completed on PR #40 branch; merge still pending.**
 
 1. Generated and committed the Android platform directory with the pinned Flutter 3.47.9 toolchain, Gradle wrapper JAR/scripts, Gradle configuration, manifest, resources and Kotlin entry point.
 2. Verified `namespace`, `applicationId` and Kotlin package are consistently `com.argentinoplay.app`.
