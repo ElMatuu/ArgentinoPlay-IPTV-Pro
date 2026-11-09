@@ -1,34 +1,54 @@
 import '../domain/epg.dart';
 import '../domain/tv_channel.dart';
 
-/// Matches a playlist channel to its XMLTV channel.
+/// Builds a reusable, constant-time matcher for playlist channels.
 ///
-/// A non-empty [TvChannel.tvgId] is authoritative: if it does not exist in the
-/// guide, name matching is not used as a potentially misleading fallback.
-/// Name matching is used only when the playlist has no tvg-id and only when
-/// the normalized display name is unique in the guide.
-EpgChannel? matchEpgChannel(TvChannel channel, XmltvGuide guide) {
-  final tvgId = channel.tvgId.trim();
-  if (tvgId.isNotEmpty) {
-    return guide.channels[tvgId];
-  }
+/// Explicit tvg-id values are authoritative. Name matching is used only when
+/// the playlist has no tvg-id and the normalized name is unique in the guide.
+class EpgChannelMatcher {
+  EpgChannelMatcher(XmltvGuide guide)
+      : _channelsById = guide.channels,
+        _channelsByNormalizedName = _buildNameIndex(guide);
 
-  final normalizedName = _normalizeChannelName(channel.name);
-  if (normalizedName.isEmpty) {
-    return null;
-  }
+  final Map<String, EpgChannel> _channelsById;
+  final Map<String, EpgChannel?> _channelsByNormalizedName;
 
-  EpgChannel? match;
-  for (final candidate in guide.channels.values) {
-    if (_normalizeChannelName(candidate.displayName) != normalizedName) {
-      continue;
+  EpgChannel? match(TvChannel channel) {
+    final tvgId = channel.tvgId.trim();
+    if (tvgId.isNotEmpty) {
+      return _channelsById[tvgId];
     }
-    if (match != null) {
+
+    final normalizedName = _normalizeChannelName(channel.name);
+    if (normalizedName.isEmpty) {
       return null;
     }
-    match = candidate;
+    return _channelsByNormalizedName[normalizedName];
   }
-  return match;
+
+  static Map<String, EpgChannel?> _buildNameIndex(XmltvGuide guide) {
+    final index = <String, EpgChannel?>{};
+    for (final candidate in guide.channels.values) {
+      final name = _normalizeChannelName(candidate.displayName);
+      if (name.isEmpty) continue;
+
+      if (index.containsKey(name)) {
+        // A null value records an ambiguous name and prevents unsafe matches.
+        index[name] = null;
+      } else {
+        index[name] = candidate;
+      }
+    }
+    return index;
+  }
+}
+
+/// Convenience API for callers that only need a single match.
+///
+/// Screens rendering many channels should retain an [EpgChannelMatcher]
+/// instance instead of rebuilding the index for every channel.
+EpgChannel? matchEpgChannel(TvChannel channel, XmltvGuide guide) {
+  return EpgChannelMatcher(guide).match(channel);
 }
 
 /// Returns the current programme for [channel], if the guide has a safe match.
@@ -37,7 +57,7 @@ EpgProgramme? currentProgrammeForChannel(
   XmltvGuide guide, {
   required DateTime at,
 }) {
-  final match = matchEpgChannel(channel, guide);
+  final match = EpgChannelMatcher(guide).match(channel);
   if (match == null) {
     return null;
   }
