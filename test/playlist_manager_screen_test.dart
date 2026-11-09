@@ -358,5 +358,4 @@ void main() {
     expect(replacementNotifications, 0);
     expect(await repository.loadPlaylist('news'), contains('Canal Nuevo'));
   });
-
 }
