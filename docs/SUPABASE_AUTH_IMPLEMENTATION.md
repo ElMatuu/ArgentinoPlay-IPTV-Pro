@@ -19,4 +19,4 @@ Before enabling account creation in production:
 4. Keep all database tables protected by RLS and test cross-user isolation with two independent accounts.
 5. Never log passwords, access tokens, refresh tokens, or full auth responses.
 
-The automated tests validate local input handling and cloud-unconfigured UI behavior. They do not replace hosted email delivery, deep-link, or physical-device end-to-end tests.
+The automated tests validate local input handling and cloud-unconfigured UI behavior. They do not replace hosted email delivery, deep-link, or physical-device end-to-end tests. CI runs strict `dart format`, fatal static analysis, the full Flutter test suite, and a debug APK build.
