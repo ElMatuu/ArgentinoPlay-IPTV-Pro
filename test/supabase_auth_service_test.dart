@@ -33,6 +33,17 @@ void main() {
     );
   });
 
+  test('rejects display names longer than the profile database limit', () async {
+    await expectLater(
+      auth.signUp(
+        email: 'user@example.com',
+        password: 'correct horse battery',
+        displayName: 'a' * 81,
+      ),
+      throwsA(isA<AuthInputException>()),
+    );
+  });
+
   test('rejects unsupported recovery redirect schemes', () async {
     await expectLater(
       auth.sendPasswordRecovery(
