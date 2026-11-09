@@ -118,6 +118,7 @@ void main() {
                       repository: repository,
                       activePlaylistId: null,
                       onSelected: onSelected,
+                      onReplaced: (_, __) {},
                     ),
                   ),
                 );
