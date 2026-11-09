@@ -154,6 +154,29 @@ jobs:
           echo "Instalando Android SDK Platform 36."
           "$SDKMANAGER" --install "platforms;android-36"
 
+          # Flutter's generated Android project currently requests this NDK.
+          # Install it before Gradle so a transient/corrupt SDK download can be
+          # retried here instead of failing halfway through assembleDebug.
+          NDK_VERSION="28.2.13676358"
+          NDK_PATH="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/ndk/$NDK_VERSION"
+          for attempt in 1 2 3; do
+            if [[ -f "$NDK_PATH/source.properties" ]]; then
+              echo "NDK $NDK_VERSION ya está instalado."
+              break
+            fi
+            echo "Instalando NDK $NDK_VERSION (intento $attempt/3)."
+            rm -rf "$NDK_PATH"
+            if "$SDKMANAGER" --install "ndk;$NDK_VERSION" && [[ -f "$NDK_PATH/source.properties" ]]; then
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "::error::No se pudo instalar y verificar NDK $NDK_VERSION tras 3 intentos."
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
+          test -f "$NDK_PATH/source.properties"
+
           python3 - <<'PY'
           from pathlib import Path
           import re

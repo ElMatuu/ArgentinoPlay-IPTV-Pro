@@ -15,6 +15,7 @@ import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
 import 'services/supabase_bootstrap.dart';
+import 'services/account_screen.dart';
 import 'services/player_seek.dart';
 import 'services/player_remote_action.dart';
 import 'services/m3u_parser.dart';
@@ -383,6 +384,17 @@ class _HomeScreenState extends State<HomeScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Mi cuenta',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AccountScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.account_circle_outlined),
+          ),
           IconButton(
             tooltip: 'Mis listas',
             onPressed: _loading ? null : _openPlaylistManager,
