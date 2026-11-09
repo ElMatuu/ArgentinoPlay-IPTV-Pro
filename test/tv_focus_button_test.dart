@@ -48,15 +48,16 @@ void main() {
 
   testWidgets('Tab moves focus through TV controls', (tester) async {
     await tester.pumpWidget(buildHarness());
-    final firstFocus = FocusManager.instance.primaryFocus;
-    expect(firstFocus, isNotNull);
+    final pauseContext = tester.element(find.text('Pausar'));
+    expect(
+      Focus.of(tester.element(find.text('Reproducir'))).hasPrimaryFocus,
+      isTrue,
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
-    final secondFocus = FocusManager.instance.primaryFocus;
 
-    expect(secondFocus, isNotNull);
-    expect(secondFocus, isNot(same(firstFocus)));
+    expect(Focus.of(pauseContext).hasPrimaryFocus, isTrue);
   });
 }
 
