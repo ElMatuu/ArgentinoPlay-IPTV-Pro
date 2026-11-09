@@ -9,7 +9,7 @@ void main() {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: Scaffold(
+      home: const Scaffold(
         body: FocusTraversalGroup(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
