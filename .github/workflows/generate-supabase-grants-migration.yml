@@ -1,0 +1,68 @@
+name: Generate Supabase least-privilege migration
+
+on:
+  push:
+    branches:
+      - infra/supabase-schema-foundation
+
+permissions:
+  contents: write
+
+jobs:
+  generate-migration:
+    if: contains(github.event.head_commit.message, '[generate-grants-migration]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.79.0
+
+      - name: Generate migration with Supabase CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase migration new tighten_authenticated_table_grants
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_tighten_authenticated_table_grants.sql' -print -quit)"
+          test -n "$migration_file"
+          cat >> "$migration_file" <<'SQL'
+          -- Restrict the Data API roles to the operations required by the app.
+          -- RLS remains enabled and continues to enforce per-user row ownership.
+          revoke all privileges on table
+            public.profiles,
+            public.devices,
+            public.playlists,
+            public.favorite_channels,
+            public.user_preferences,
+            public.sync_receipts,
+            public.sync_cursors
+          from public, anon, authenticated;
+
+          grant select, update on table public.profiles to authenticated;
+          grant select, insert, update, delete on table
+            public.devices,
+            public.playlists,
+            public.favorite_channels,
+            public.user_preferences
+          to authenticated;
+          grant select, insert on table public.sync_receipts to authenticated;
+          grant select, insert, update, delete on table public.sync_cursors to authenticated;
+          SQL
+          echo "Generated migration: $migration_file"
+          cat "$migration_file"
+
+      - name: Commit generated migration to this PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/migrations/*_tighten_authenticated_table_grants.sql
+          git commit -m "Add generated least-privilege grants migration"
+          git push origin "HEAD:$GITHUB_REF_NAME"
