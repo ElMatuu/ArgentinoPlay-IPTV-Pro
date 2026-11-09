@@ -210,12 +210,12 @@ jobs:
           set -euo pipefail
           echo "Validando formato con dart format --set-exit-if-changed --output=none."
           if dart format --set-exit-if-changed --output=none lib test tool; then
-            echo "Formato validado: lib/ y test/ cumplen el estilo oficial sin cambios."
+            echo "Formato validado: lib/, test/ y tool/ cumplen el estilo oficial sin cambios."
             exit 0
           fi
           echo "Hay archivos Dart que no cumplen 'dart format'."
           dart format lib test tool
-          git --no-pager diff -- lib test | sed -e 's/ /·/g' -e 's/	/→/g' > /tmp/format.diff || true
+          git --no-pager diff -- lib test tool | sed -e 's/ /·/g' -e 's/	/→/g' > /tmp/format.diff || true
           size="$(wc -c < /tmp/format.diff)"
           echo "Diff de formato (espacios marcados con punto medio): ${size} bytes."
           split -b 850 -d /tmp/format.diff /tmp/fmt_
