@@ -16,6 +16,7 @@ import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
 import 'services/player_seek.dart';
 import 'services/player_remote_action.dart';
+import 'services/tv_focus_button.dart';
 import 'services/m3u_parser.dart';
 import 'services/xmltv_parser.dart';
 
@@ -931,10 +932,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                             const SizedBox(height: 12),
                             Text(_error!, textAlign: TextAlign.center),
                             const SizedBox(height: 16),
-                            FilledButton.icon(
+                            TvFocusButton(
                               onPressed: _start,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Reintentar'),
+                              icon: Icons.refresh,
+                              label: 'Reintentar',
+                              autofocus: true,
                             ),
                           ],
                         ),
@@ -953,15 +955,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 ),
                                 Align(
                                   alignment: Alignment.center,
-                                  child: IconButton.filledTonal(
-                                    iconSize: 42,
+                                  child: TvFocusButton(
+                                    autofocus: true,
                                     onPressed: () =>
                                         _togglePlayback(controller),
-                                    icon: Icon(
-                                      controller.value.isPlaying
-                                          ? Icons.pause
-                                          : Icons.play_arrow,
-                                    ),
+                                    icon: controller.value.isPlaying
+                                        ? Icons.pause
+                                        : Icons.play_arrow,
+                                    label: controller.value.isPlaying
+                                        ? 'Pausar'
+                                        : 'Reproducir',
                                   ),
                                 ),
                                 if (controller.value.isBuffering)
