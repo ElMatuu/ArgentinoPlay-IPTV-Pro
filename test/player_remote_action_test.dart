@@ -27,30 +27,35 @@ void main() {
       );
     });
 
-    test('maps left and right arrows to ten-second seeking', () {
-      expect(
-        playerRemoteActionForKey(LogicalKeyboardKey.arrowLeft),
-        PlayerRemoteAction.seekBackward,
-      );
-      expect(
-        playerRemoteActionForKey(LogicalKeyboardKey.arrowRight),
-        PlayerRemoteAction.seekForward,
-      );
+    test('maps arrows and dedicated media seek keys', () {
+      for (final key in [
+        LogicalKeyboardKey.arrowLeft,
+        LogicalKeyboardKey.mediaRewind,
+      ]) {
+        expect(
+          playerRemoteActionForKey(key),
+          PlayerRemoteAction.seekBackward,
+        );
+      }
+      for (final key in [
+        LogicalKeyboardKey.arrowRight,
+        LogicalKeyboardKey.mediaFastForward,
+      ]) {
+        expect(
+          playerRemoteActionForKey(key),
+          PlayerRemoteAction.seekForward,
+        );
+      }
     });
 
     test('maps Android and desktop back keys to back navigation', () {
-      expect(
-        playerRemoteActionForKey(LogicalKeyboardKey.goBack),
-        PlayerRemoteAction.back,
-      );
-      expect(
-        playerRemoteActionForKey(LogicalKeyboardKey.escape),
-        PlayerRemoteAction.back,
-      );
-      expect(
-        playerRemoteActionForKey(LogicalKeyboardKey.browserBack),
-        PlayerRemoteAction.back,
-      );
+      for (final key in [
+        LogicalKeyboardKey.goBack,
+        LogicalKeyboardKey.escape,
+        LogicalKeyboardKey.browserBack,
+      ]) {
+        expect(playerRemoteActionForKey(key), PlayerRemoteAction.back);
+      }
     });
 
     test('ignores navigation keys without a player action', () {
