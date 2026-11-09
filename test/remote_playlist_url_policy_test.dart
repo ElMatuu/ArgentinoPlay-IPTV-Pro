@@ -4,24 +4,32 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('validateRemotePlaylistUrl', () {
     test('allows a qualified HTTPS hostname', () {
-      final result = validateRemotePlaylistUrl('https://media.example.org/list.m3u');
+      final result =
+          validateRemotePlaylistUrl('https://media.example.org/list.m3u');
       expect(result.allowed, isTrue);
     });
 
     test('rejects non-HTTPS schemes and malformed URLs', () {
-      expect(validateRemotePlaylistUrl('http://media.example.org/a.m3u').allowed, isFalse);
+      expect(
+          validateRemotePlaylistUrl('http://media.example.org/a.m3u').allowed,
+          isFalse);
       expect(validateRemotePlaylistUrl('file:///etc/passwd').allowed, isFalse);
       expect(validateRemotePlaylistUrl('not a url').allowed, isFalse);
     });
 
     test('rejects embedded credentials and local hostnames', () {
-      expect(validateRemotePlaylistUrl('https://user:pass@media.example.org/a').allowed, isFalse);
+      expect(
+          validateRemotePlaylistUrl('https://user:pass@media.example.org/a')
+              .allowed,
+          isFalse);
       expect(validateRemotePlaylistUrl('https://localhost/a').allowed, isFalse);
-      expect(validateRemotePlaylistUrl('https://printer.local/a').allowed, isFalse);
+      expect(validateRemotePlaylistUrl('https://printer.local/a').allowed,
+          isFalse);
       expect(validateRemotePlaylistUrl('https://intranet/a').allowed, isFalse);
     });
 
-    test('rejects private, loopback, link-local and reserved IPv4 literals', () {
+    test('rejects private, loopback, link-local and reserved IPv4 literals',
+        () {
       for (final host in [
         '10.0.0.1',
         '127.0.0.1',
@@ -50,7 +58,8 @@ void main() {
     });
 
     test('documents the DNS resolution boundary', () {
-      final result = validateRemotePlaylistUrl('https://media.example.org/list.m3u');
+      final result =
+          validateRemotePlaylistUrl('https://media.example.org/list.m3u');
       expect(result.allowed, isTrue);
       expect(result.reason, contains('static URL policy'));
     });
