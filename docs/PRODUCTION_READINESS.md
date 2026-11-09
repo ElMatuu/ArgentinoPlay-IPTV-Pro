@@ -51,8 +51,9 @@ CI verifies source formatting, static analysis, automated tests, Android project
 ### E. Security, privacy and release
 1. Before enabling remote URL import, enforce HTTPS policy as appropriate, reject loopback/private/link-local destinations, validate every redirect, cap response size and enforce connection/read timeouts.
 2. Review dependencies, licenses, permissions, diagnostics and privacy disclosures.
-3. Keep signing credentials in protected CI secrets; never commit keystores or passwords.
-4. Produce signed release artifacts and complete installation/upgrade/rollback checks on physical devices.
+3. The Android release variant is intentionally unsigned; it must never fall back to the debug keystore. Configure protected production signing before publishing.
+4. Keep signing credentials in protected CI secrets; never commit keystores or passwords.
+5. Produce signed release artifacts and complete installation/upgrade/rollback checks on physical devices.
 
 ## Content rights
 
