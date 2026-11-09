@@ -2,11 +2,18 @@ import 'dart:convert';
 
 import '../domain/tv_channel.dart';
 
+/// Maximum UTF-8 size accepted by the M3U parser (same limit as playlist storage).
+const int maxM3uSourceBytes = 5 * 1024 * 1024;
+
 /// Parses an M3U/M3U8 playlist and keeps only safe HTTP(S) stream URLs.
 ///
 /// This parser does not verify ownership or retransmission rights. The caller
 /// must ensure every imported source is authorized for the intended use.
 List<TvChannel> parseM3u(String source) {
+  if (utf8.encode(source).length > maxM3uSourceBytes) {
+    throw const FormatException('Playlist exceeds the 5 MB limit.');
+  }
+
   final normalized = source.replaceFirst('\uFEFF', '');
   final lines = const LineSplitter().convert(normalized);
   final firstContentLine = lines
