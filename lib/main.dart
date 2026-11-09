@@ -219,7 +219,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final source = utf8.decode(bytes);
-      final parsed = parseM3u(source);
+      final report = parseM3uWithReport(source);
+      final parsed = report.channels;
       if (parsed.isEmpty) {
         throw const FormatException(
           'No se encontraron canales HTTP/HTTPS válidos.',
@@ -243,8 +244,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _activePlaylistName = record.name;
         _tab = 0;
       });
+      final skipped = report.rejectedEntries;
+      final skippedMessage = skipped == 0
+          ? ''
+          : ' Se omitieron $skipped entradas incompletas o con direcciones no admitidas.';
       _showMessage(
-        'Se guardó "${record.name}" con ${parsed.length} canales. Usá únicamente fuentes autorizadas.',
+        'Se guardó "${record.name}" con ${parsed.length} canales.'
+        '$skippedMessage Usá únicamente fuentes autorizadas.',
       );
     } on FormatException catch (error) {
       _showMessage(error.message);
