@@ -15,6 +15,7 @@ import 'services/local_library_repository.dart';
 import 'services/playlist_library_repository.dart';
 import 'services/playlist_manager_screen.dart';
 import 'services/player_seek.dart';
+import 'services/player_command_timeout.dart';
 import 'services/player_remote_action.dart';
 import 'services/player_startup_timeout.dart';
 import 'services/m3u_parser.dart';
@@ -870,7 +871,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     Future<void> Function() command,
   ) async {
     try {
-      await command();
+      await runPlayerCommandWithTimeout(command());
     } catch (_) {
       if (!mounted || !identical(_controller, controller)) return;
       setState(() {
