@@ -123,7 +123,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Eliminar lista'),
         content: Text(
-            '¿Querés eliminar "${record.name}"? Esta acción no se puede deshacer.'),
+          '¿Querés eliminar "${record.name}"? Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -196,7 +197,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 ),
                 title: Text(record.name),
                 subtitle: Text(
-                    '${record.channelCount} $channelLabel${active ? ' · Activa' : ''}'),
+                  '${record.channelCount} $channelLabel${active ? ' · Activa' : ''}',
+                ),
                 onTap: () => _select(record),
                 trailing: PopupMenuButton<String>(
                   tooltip: 'Acciones de ${record.name}',
@@ -206,7 +208,10 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                     if (value == 'delete') _delete(record);
                   },
                   itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'replace', child: Text('Reemplazar M3U/M3U8')),
+                    PopupMenuItem(
+                      value: 'replace',
+                      child: Text('Reemplazar M3U/M3U8'),
+                    ),
                     PopupMenuItem(value: 'rename', child: Text('Renombrar')),
                     PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                   ],
