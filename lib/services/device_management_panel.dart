@@ -187,7 +187,7 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
                   ),
                   title: Text(device.label),
                   subtitle: Text(
-                    '${device.platform} · v${device.appVersion}\\nÚltima actividad: ${_dateLabel(device.lastSeenAt)}${isRevoked ? '\\nAcceso revocado' : ''}',
+                    '${device.platform} · v${device.appVersion}\nÚltima actividad: ${_dateLabel(device.lastSeenAt)}${isRevoked ? '\nAcceso revocado' : ''}',
                   ),
                   isThreeLine: true,
                   trailing: isCurrent
