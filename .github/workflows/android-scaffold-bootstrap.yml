@@ -126,6 +126,15 @@ jobs:
           else:
               sys.exit("::error::Kotlin entry point is missing.")
 
+          # flutter create can recreate a second entry point under a different
+          # package. Remove that known obsolete file after validating its package.
+          obsolete = root / "app/src/main/kotlin/com/argentinoplay/argentino_play/MainActivity.kt"
+          if obsolete.is_file():
+              obsolete_source = obsolete.read_text(encoding="utf-8")
+              if obsolete_source.count("package com.argentinoplay.argentino_play") != 1:
+                  sys.exit("::error::Unexpected obsolete Kotlin package declaration.")
+              obsolete.unlink()
+
           properties = root / "gradle.properties"
           lines = properties.read_text(encoding="utf-8").splitlines()
           lines = [line for line in lines if not line.startswith("org.gradle.warning.mode=")]
