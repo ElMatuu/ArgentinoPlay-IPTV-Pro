@@ -39,13 +39,14 @@ void main() {
       expect(first.onTap, isNotNull);
       expect(second.onTap, isNotNull);
 
-      final initialFocus = FocusManager.instance.primaryFocus;
-      expect(initialFocus, isNotNull);
+      final firstContext = tester.element(find.text('Canal Uno'));
+      final secondContext = tester.element(find.text('Canal Dos'));
+      expect(Focus.of(firstContext).hasPrimaryFocus, isTrue);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
 
-      expect(FocusManager.instance.primaryFocus, isNot(same(initialFocus)));
+      expect(Focus.of(secondContext).hasPrimaryFocus, isTrue);
     },
   );
 
