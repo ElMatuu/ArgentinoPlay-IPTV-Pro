@@ -90,8 +90,9 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
         widget.onReplaced(updated, source);
       }
       setState(_refresh);
+      final channelLabel = channels.length == 1 ? 'canal' : 'canales';
       _message('Lista "${updated.name}" actualizada: '
-          '${channels.length} canales.');
+          '${channels.length} $channelLabel.');
     } on FormatException catch (error) {
       _message(error.message);
     } catch (error) {
