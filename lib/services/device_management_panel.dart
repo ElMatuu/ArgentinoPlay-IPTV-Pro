@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -89,9 +90,7 @@ class _DeviceManagementPanelState extends State<DeviceManagementPanel> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Revocar dispositivo'),
         content: Text(
-          '¿Querés revocar "' +
-              device.label +
-              '" para futuras operaciones de sincronización? La sesión de ese equipo no se cierra automáticamente.',
+          '¿Querés revocar "${device.label}" para futuras operaciones de sincronización? La sesión de ese equipo no se cierra automáticamente.',
         ),
         actions: [
           TextButton(
