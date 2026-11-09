@@ -110,7 +110,8 @@ class _AccountScreenState extends State<AccountScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _message = 'No se pudo completar la operación. Revisá la conexión e intentá nuevamente.';
+          _message =
+              'No se pudo completar la operación. Revisá la conexión e intentá nuevamente.';
           _messageIsError = true;
         });
       }
@@ -133,7 +134,8 @@ class _AccountScreenState extends State<AccountScreen> {
       );
       if (mounted) {
         setState(() {
-          _message = 'Si el correo está registrado, vas a recibir un enlace para recuperar la contraseña.';
+          _message =
+              'Si el correo está registrado, vas a recibir un enlace para recuperar la contraseña.';
           _messageIsError = false;
         });
       }
@@ -147,7 +149,8 @@ class _AccountScreenState extends State<AccountScreen> {
     } on AuthException {
       if (mounted) {
         setState(() {
-          _message = 'No se pudo enviar el enlace. Revisá el correo e intentá nuevamente.';
+          _message =
+              'No se pudo enviar el enlace. Revisá el correo e intentá nuevamente.';
           _messageIsError = true;
         });
       }
@@ -186,7 +189,8 @@ class _AccountScreenState extends State<AccountScreen> {
     } on AuthException {
       if (mounted) {
         setState(() {
-          _message = 'El enlace puede haber vencido. Solicitá uno nuevo e intentá otra vez.';
+          _message =
+              'El enlace puede haber vencido. Solicitá uno nuevo e intentá otra vez.';
           _messageIsError = true;
         });
       }
@@ -356,9 +360,9 @@ class _AccountScreenState extends State<AccountScreen> {
                           onSelectionChanged: _busy
                               ? null
                               : (selection) => setState(() {
-                                  _creatingAccount = selection.first;
-                                  _message = null;
-                                }),
+                                    _creatingAccount = selection.first;
+                                    _message = null;
+                                  }),
                         ),
                         const SizedBox(height: 20),
                         if (_creatingAccount) ...[
@@ -463,9 +467,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 _message!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: _messageIsError
-                      ? colorScheme.error
-                      : colorScheme.primary,
+                  color:
+                      _messageIsError ? colorScheme.error : colorScheme.primary,
                 ),
               ),
             ],
