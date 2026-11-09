@@ -185,8 +185,8 @@ jobs:
           mkdir -p /tmp/argentino-clean
           git clone --no-local . /tmp/argentino-clean
           cd /tmp/argentino-clean
-          flutter pub get
-          git show HEAD:analysis_options.yaml > analysis_options.yaml
+          dart pub get
+          git checkout -- analysis_options.yaml
           test -f android/gradle/wrapper/gradle-wrapper.jar
           test -x android/gradlew
           test -f android/gradlew.bat
