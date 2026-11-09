@@ -15,6 +15,8 @@ class SupabaseAuthService {
 
   bool get isSignedIn => currentUser != null;
 
+  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
+
   Future<AuthResponse> signUp({
     required String email,
     required String password,
