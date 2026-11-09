@@ -66,3 +66,9 @@ Do not label the app production-ready until the Android project is reproducible 
 
 
 Android TV focus: Home Material controls use a visible focus overlay; automated Down-key traversal coverage added. Physical Android TV/emulator acceptance remains pending.
+
+## Latest clean-checkout verification (2026-11-09)
+
+- GitHub Actions run [#42695634452](https://github.com/ElMatuu/ArgentinoPlay-IPTV-Pro/actions/runs/42695634452) passed on commit `cba462c43d0cbd850d81baed41d76bbe48545869`. All stages passed: Android scaffold generation/configuration, dependency installation, Dart formatting, static analysis, automated tests, Android debug build, scaffold commit, clean-checkout verification and APK upload.
+- Latest CI debug artifact: `argentino-play-clean-checkout-debug-apk`, artifact ID `13708664792`, 83,707,941 bytes, SHA-256 `63735d1b34d2d123123788ca559754405f95fb4a7ceb052635536582f03ddee2`. It expires 2026-11-23.
+- This artifact is an unsigned debug build for testing, not a production release. Production signing and physical-device acceptance remain release gates.
