@@ -57,12 +57,12 @@ jobs:
           ]
           for marker, element in additions:
               if marker not in source:
-                  source = source.replace("</manifest>", element + "\\n</manifest>", 1)
+                  source = source.replace("</manifest>", element + "\n</manifest>", 1)
 
           source = source.replace('android:label="argentino_play"', 'android:label="ArgentinoPlay"')
           if "android.intent.category.LEANBACK_LAUNCHER" not in source:
               launcher_activity = re.search(
-                  r'<activity\\b(?:(?!</activity>).)*android.intent.category.LAUNCHER(?:(?!</activity>).)*</activity>',
+                  r'<activity\b(?:(?!</activity>).)*android.intent.category.LAUNCHER(?:(?!</activity>).)*</activity>',
                   source,
                   re.S,
               )
@@ -75,7 +75,7 @@ jobs:
                       </intent-filter>
               """
               block = launcher_activity.group(0)
-              block = block.replace("</activity>", tv_filter + "\\n    </activity>", 1)
+              block = block.replace("</activity>", tv_filter + "\n    </activity>", 1)
               source = source[:launcher_activity.start()] + block + source[launcher_activity.end():]
 
           manifest.write_text(source, encoding="utf-8")
@@ -84,17 +84,17 @@ jobs:
           gradle_source = gradle.read_text(encoding="utf-8")
           for key in ("applicationId", "namespace"):
               pattern = re.compile(
-                  r'(?m)^(\\s*' + key + r'\\s*=\\s*)"[^"]+"(\\s*)$'
+                  r'(?m)^(\s*' + key + r'\s*=\s*)"[^"]+"(\s*)$'
               )
               gradle_source, count = pattern.subn(
-                  r'\\g<1>"com.argentinoplay.app"\\g<2>', gradle_source
+                  r'\g<1>"com.argentinoplay.app"\g<2>', gradle_source
               )
               if count != 1:
                   sys.exit("::error::Could not set " + key + " exactly once.")
 
           gradle_source, count = re.subn(
-              r'(?m)^(\\s*compileSdk\\s*=\\s*)(?:flutter\\.compileSdkVersion|\\d+)(\\s*)$',
-              r'\\g<1>36\\g<2>',
+              r'(?m)^(\s*compileSdk\s*=\s*)(?:flutter\.compileSdkVersion|\d+)(\s*)$',
+              r'\g<1>36\g<2>',
               gradle_source,
           )
           if count != 1:
@@ -125,7 +125,7 @@ jobs:
           lines = properties.read_text(encoding="utf-8").splitlines()
           lines = [line for line in lines if not line.startswith("org.gradle.warning.mode=")]
           lines.append("org.gradle.warning.mode=all")
-          properties.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+          properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
           checks = [
               'applicationId = "com.argentinoplay.app"' in gradle_source,
