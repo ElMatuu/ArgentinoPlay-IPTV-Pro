@@ -8,15 +8,16 @@ void main() {
   testWidgets(
     'account screen stays available when cloud is not initialized',
     (tester) async {
-    expect(SupabaseBootstrap.isConfigured, isFalse);
+      expect(SupabaseBootstrap.isConfigured, isFalse);
 
-    await tester.pumpWidget(
-      const MaterialApp(home: AccountScreen()),
-    );
+      await tester.pumpWidget(
+        const MaterialApp(home: AccountScreen()),
+      );
 
-    expect(
-      find.textContaining('La conexión con la nube todavía no está configurada'),
-      findsOneWidget,
-    );
-  });
+      expect(
+        find.textContaining('La conexión con la nube todavía no está configurada'),
+        findsOneWidget,
+      );
+    },
+  );
 }
