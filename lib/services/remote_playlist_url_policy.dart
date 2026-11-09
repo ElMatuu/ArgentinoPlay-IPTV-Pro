@@ -34,12 +34,17 @@ RemotePlaylistUrlDecision validateRemotePlaylistUrl(String input) {
   }
 
   final host = uri.host.toLowerCase();
-  final normalizedHost = host.startsWith('[') && host.endsWith(']')
+  final unbracketedHost = host.startsWith('[') && host.endsWith(']')
       ? host.substring(1, host.length - 1)
       : host;
+  // A final DNS root dot does not change a hostname's identity. Remove it for
+  // policy checks so localhost. and printer.local. cannot bypass suffix rules.
+  final normalizedHost = unbracketedHost.endsWith('.')
+      ? unbracketedHost.substring(0, unbracketedHost.length - 1)
+      : unbracketedHost;
   final address = InternetAddress.tryParse(normalizedHost);
   final looksLikeNonStandardIpv4 = RegExp(
-    r'^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*$',
+    r'^(?:0x[0-9a-f]+|[0-9]+)(?:\\.(?:0x[0-9a-f]+|[0-9]+))*$',
     caseSensitive: false,
   ).hasMatch(normalizedHost);
   if (address == null &&
