@@ -6,6 +6,15 @@
 
 > Esta actualización complementa la auditoría histórica que sigue debajo. Los estados de PR/CI cambian con cada commit; no deben interpretarse como integración en `main` mientras no exista un merge aprobado.
 
+## Actualización de trabajo — 2026-11-09
+
+- PR #7: se integró el panel de gestión de dispositivos en la pantalla de cuenta. Lista equipos, marca el actual, refresca actividad y permite revocar otros con confirmación. Se añadieron pruebas unitarias del identificador actual y una prueba widget para listado/revocación. El CI de esta nueva revisión está en curso; no declarar verde hasta completar formato, análisis, tests y APK.
+- PR #5: se añadió la migración `20261109021431_tighten_authenticated_table_grants.sql`, cuyo nombre se generó con Supabase CLI v2.79.0. Revoca privilegios amplios de `PUBLIC`, `anon` y `authenticated`, y vuelve a conceder solo los permisos requeridos por tabla. Está versionada en la rama, pero **no aplicada** al proyecto alojado. La CI de PR #5 sigue en validación.
+- PR #5 documenta que las políticas de `sync_receipts` y `sync_cursors` exigen dispositivo activo. Las tablas de listas/favoritos/preferencias todavía no deben usarse para sincronización directa; falta una API transaccional que valide dispositivo activo, idempotencia, revisiones y conflictos.
+- El panel de dispositivos no cierra sesiones Auth remotas. La revocación solo marca el dispositivo; el futuro endpoint de sincronización debe rechazar dispositivos revocados en servidor.
+- No hay pruebas en hardware físico ni verificación de la allowlist de redirects alojada. El APK generado es de depuración, no un release firmado.
+- Los workflows temporales usados para obtener el formato exacto y el nombre de migración ya fueron retirados de sus ramas.
+
 ## Estado actual verificado
 
 - La rama `main` sigue en el commit `cc2df1e91e237b8d5fd8bdf08d8f74570cb4127b`; no se modificó ni se fusionó ningún PR.
