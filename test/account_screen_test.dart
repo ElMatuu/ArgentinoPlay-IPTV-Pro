@@ -15,7 +15,9 @@ void main() {
       );
 
       expect(
-        find.textContaining('La conexión con la nube todavía no está configurada'),
+        find.textContaining(
+          'La conexión con la nube todavía no está configurada',
+        ),
         findsOneWidget,
       );
     },
