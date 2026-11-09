@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,6 +21,7 @@ class _AccountScreenState extends State<AccountScreen> {
   final _password = TextEditingController();
   final _displayName = TextEditingController();
   late final SupabaseAuthService? _auth;
+  StreamSubscription<AuthState>? _authSubscription;
   bool _creatingAccount = false;
   bool _obscurePassword = true;
   bool _busy = false;
@@ -29,6 +32,9 @@ class _AccountScreenState extends State<AccountScreen> {
   void initState() {
     super.initState();
     _auth = SupabaseBootstrap.isConfigured ? SupabaseAuthService() : null;
+    _authSubscription = _auth?.authStateChanges.listen((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -36,6 +42,7 @@ class _AccountScreenState extends State<AccountScreen> {
     _email.dispose();
     _password.dispose();
     _displayName.dispose();
+    unawaited(_authSubscription?.cancel());
     super.dispose();
   }
 
